@@ -20,6 +20,11 @@ namespace gamemaster
         {
             services.AddControllers();
             services.Configure<SlackConfig>(Configuration.GetSection("Slack"));
+            services.Configure<MongoConfig>(Configuration.GetSection("Mongo"));
+            services.AddMongoStorage();
+            services.AddTransient<GamemasterSupervisor>();
+            services.AddTransient<SlackApiConnectionActor>();
+            services.AddSingleton<IHostedService, ActorsHostService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
