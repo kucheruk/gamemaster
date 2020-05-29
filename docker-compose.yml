@@ -3,6 +3,8 @@ version: '3.4'
 services:
   gamemaster.app:
     container_name: web_gm
+    env_file:
+      - ../../.env
     build:
       context: .
     restart:

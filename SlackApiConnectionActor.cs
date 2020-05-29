@@ -1,9 +1,8 @@
-using System.Threading;
+using System.Threading.Tasks;
 using Akka.Actor;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SlackAPI;
-using SlackAPI.WebSocketMessages;
 
 namespace gamemaster
 {
@@ -11,39 +10,30 @@ namespace gamemaster
     {
         private readonly IOptions<SlackConfig> _cfg;
         private readonly ILogger<SlackApiConnectionActor> _logger;
-        private SlackSocketClient _client;
+        private readonly MessageRouter _router;
+        private SlackTaskClient _client;
 
-        public SlackApiConnectionActor(IOptions<SlackConfig> cfg, ILogger<SlackApiConnectionActor> logger)
+        public SlackApiConnectionActor(IOptions<SlackConfig> cfg, ILogger<SlackApiConnectionActor> logger,
+            MessageRouter router)
         {
             _cfg = cfg;
             _logger = logger;
-            Receive<SlackConnectedMessage>(_ => Become(Connected));
+            _router = router;
+            ReceiveAsync<MessageToChannel>(SendMessage);
         }
 
-        private void Connected()
+
+        private async Task SendMessage(MessageToChannel obj)
         {
-            Receive<NewMessage>(HandleNewMessage);
-            _logger.LogInformation("Connected to slack!");
+            await _client.PostMessageAsync(obj.ChannelId, obj.Message);
         }
 
-        private void HandleNewMessage(NewMessage obj)
-        {
-            _logger.LogInformation("New message from slack {Message}", obj);
-        }
 
         protected override void PreStart()
         {
             base.PreStart();
-            _client = new SlackSocketClient(_cfg.Value.ClientSecret);
-            _client.Connect(connected =>
-            {
-                Self.Tell(SlackConnectedMessage.Instance);
-            }, () =>{
-            });
-            _client.OnMessageReceived += message =>
-            {
-                Self.Tell(message);
-            };
+            _router.RegisterSlackGateway(Self);
+            _client = new SlackTaskClient(_cfg.Value.OauthToken);
         }
     }
 }

@@ -18,13 +18,15 @@ namespace gamemaster
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers();
+            services.AddControllers().AddNewtonsoftJson();
             services.Configure<SlackConfig>(Configuration.GetSection("Slack"));
             services.Configure<MongoConfig>(Configuration.GetSection("Mongo"));
             services.AddMongoStorage();
+            services.AddSingleton<MessageRouter>();
             services.AddTransient<GamemasterSupervisor>();
             services.AddTransient<SlackApiConnectionActor>();
             services.AddSingleton<IHostedService, ActorsHostService>();
+            services.AddAuthentication("");
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -35,12 +37,10 @@ namespace gamemaster
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseHttpsRedirection();
-
+            app.UseMiddleware<DebugLoggingMiddleware>();
             app.UseRouting();
-
             app.UseAuthorization();
-
+            app.UseAuthentication();
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }
     }
