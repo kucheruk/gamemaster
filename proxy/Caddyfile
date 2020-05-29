@@ -1,0 +1,5 @@
+gamemaster.kucheruk.net
+
+root * /var/www
+reverse_proxy /api/* web_gm:5000
+file_server

@@ -5,12 +5,10 @@ using Microsoft.Extensions.Options;
 namespace gamemaster.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/slack")]
     public class SlackEndpointController : ControllerBase
     {
         private readonly IOptions<SlackConfig> _cfg;
-
-
         private readonly ILogger<SlackEndpointController> _logger;
 
         public SlackEndpointController(ILogger<SlackEndpointController> logger, IOptions<SlackConfig> cfg)
