@@ -7,13 +7,13 @@ jobs:
         steps:
         - name: Deploy
         - uses: wshihadeh/docker-deployment-action@v1
-            with:
-                remote_docker_host: ${{ secrets.deploy_host }}
-                ssh_private_key: ${{ secrets.docker_ssh_private_key }}
-                ssh_public_key: ${{ secrets.docker_ssh_public_key }}
-                deployment_mode: docker-compose
-                copy_stack_file: true
-                deploy_path: /root/gamemaster
-                stack_file_name: docker-compose.yaml
-                keep_files: 5
-                args: up -d 
+          with:
+            remote_docker_host: ${{ secrets.deploy_host }}
+            ssh_private_key: ${{ secrets.docker_ssh_private_key }}
+            ssh_public_key: ${{ secrets.docker_ssh_public_key }}
+            deployment_mode: docker-compose
+            copy_stack_file: true
+            deploy_path: /root/gamemaster
+            stack_file_name: docker-compose.yaml
+            keep_files: 5
+            args: up -d 
