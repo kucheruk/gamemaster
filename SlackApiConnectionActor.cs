@@ -34,6 +34,7 @@ namespace gamemaster
             base.PreStart();
             _router.RegisterSlackGateway(Self);
             _client = new SlackTaskClient(_cfg.Value.OauthToken);
+            _client.EmitPresence(Presence.active);
         }
     }
 }

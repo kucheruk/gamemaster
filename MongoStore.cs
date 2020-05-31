@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
@@ -9,13 +11,18 @@ namespace gamemaster
 
         public MongoStore(IOptions<MongoConfig> cfg)
         {
-            _mc = new MongoClient(cfg.Value.ConnectionString);
+            var cs = MongoClientSettings.FromConnectionString(cfg.Value.ConnectionString);
+            cs.ConnectTimeout = TimeSpan.FromSeconds(2);
+            _mc = new MongoClient(cs);
             Db = _mc.GetDatabase(cfg.Value.DbName ?? "gamemaster");
             Bright = GetCollection<Action>("actions");
             Journal = GetCollection<JournalRecord>("journal");
+            Ops = GetCollection<OperationDescription>("ops");
             Players = GetCollection<Player>("players");
             App = GetCollection<AppState>("appState");
         }
+
+        public IMongoCollection<OperationDescription> Ops { get; set; }
 
         public IMongoDatabase Db { get; set; }
 
@@ -27,6 +34,11 @@ namespace gamemaster
         private IMongoCollection<T> GetCollection<T>(string col)
         {
             return Db.GetCollection<T>(col);
+        }
+
+        public async Task<IClientSessionHandle> StartSessionAsync()
+        {
+            return await Db.Client.StartSessionAsync();
         }
     }
 }

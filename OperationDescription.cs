@@ -6,7 +6,7 @@ namespace gamemaster
 {
     [BsonIgnoreExtraElements]
     [DataContract]
-    public class JournalRecord
+    public class OperationDescription
     {
         [BsonId] [DataMember] public string Id { get; set; }
 
@@ -14,17 +14,8 @@ namespace gamemaster
 
         [DataMember] public string UserId { get; set; }
 
-        [DataMember] public string OperationId { get; set; }
-
-        [DataMember] public decimal Amount { get; set; }
-
         [DataMember] public string Period { get; set; }
 
-        [DataMember] public string Currency { get; set; }
-
-        public Account ToAccount()
-        {
-            return new Account(UserId, Currency ?? Constants.DefaultCurrency);
-        }
+        [DataMember] public string Description { get; set; }
     }
 }

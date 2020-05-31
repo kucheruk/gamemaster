@@ -7,8 +7,6 @@ namespace gamemaster
     [DataContract]
     public class Action
     {
-        [BsonId]
-        [DataMember]
-        public string Id { get; set; }
+        [BsonId] [DataMember] public string Id { get; set; }
     }
 }

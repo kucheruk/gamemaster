@@ -4,9 +4,20 @@ namespace gamemaster
 {
     public class GamemasterSupervisor : ReceiveActor
     {
-        protected override void PreStart()
+        public GamemasterSupervisor()
+        {
+            Receive<DbMainetanceDoneMessage>(StartupSystem);
+        }
+
+        private void StartupSystem(DbMainetanceDoneMessage arg)
         {
             Context.ChildWithBackoffSupervision<SlackApiConnectionActor>();
+            Context.ChildWithBackoffSupervision<LedgerActor>();
+        }
+
+        protected override void PreStart()
+        {
+            Context.ChildWithBackoffSupervision<DbMaintenanceService>();
             base.PreStart();
         }
     }

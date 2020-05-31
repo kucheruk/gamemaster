@@ -7,10 +7,10 @@ namespace gamemaster
     [DataContract]
     public class AppState
     {
-        [BsonId]
-        [DataMember]
-        public string Id { get; set; }
-        [DataMember]
-        public int DbVersion { get; set; }
+        [BsonId] [DataMember] public string Id { get; set; }
+
+        [DataMember] public int DbVersion { get; set; }
+
+        [DataMember] public string CurrentLedgerPeriod { get; set; }
     }
 }

@@ -7,7 +7,9 @@ namespace gamemaster
 {
     public static class ActorExtensions
     {
-        public static IActorRef ChildWithBackoffSupervision<T>(this IUntypedActorContext context, string name = nameof(T), int minBackoff = 1, int maxBackoff = 3)
+        public static IActorRef ChildWithBackoffSupervision<T>(this IUntypedActorContext context,
+            string name = nameof(T), int minBackoff = 1,
+            int maxBackoff = 3)
             where T : ActorBase
         {
             var childProps = context.System.DI().Props<T>();
@@ -21,7 +23,8 @@ namespace gamemaster
                     SupervisorStrategy.StoppingStrategy));
         }
 
-        public static IActorRef ChildWithBackoffSupervision<T>(this IUntypedActorContext context, Props childProps, string name = nameof(T),
+        public static IActorRef ChildWithBackoffSupervision<T>(this IUntypedActorContext context, Props childProps,
+            string name = nameof(T),
             int minBackoff = 1,
             int maxBackoff = 3)
             where T : ActorBase
@@ -36,7 +39,8 @@ namespace gamemaster
                     SupervisorStrategy.StoppingStrategy));
         }
 
-        public static IActorRef ChildWithBackoffSupervision(this IUntypedActorContext context, Props childProps, string name, int minBackoff = 1,
+        public static IActorRef ChildWithBackoffSupervision(this IUntypedActorContext context, Props childProps,
+            string name, int minBackoff = 1,
             int maxBackoff = 3)
         {
             return context.ActorOf(

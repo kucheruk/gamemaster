@@ -22,11 +22,15 @@ namespace gamemaster
             services.Configure<SlackConfig>(Configuration.GetSection("Slack"));
             services.Configure<MongoConfig>(Configuration.GetSection("Mongo"));
             services.AddMongoStorage();
+            services.AddLedger();
+            services.AddAppState();
+            services.AddSlackSlashCommands();
             services.AddSingleton<MessageRouter>();
+            services.AddSingleton<SlackRequestSignature>();
             services.AddTransient<GamemasterSupervisor>();
             services.AddTransient<SlackApiConnectionActor>();
             services.AddSingleton<IHostedService, ActorsHostService>();
-            services.AddAuthentication("");
+            services.AddTransient<DbMaintenanceService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -37,11 +41,12 @@ namespace gamemaster
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseMiddleware<DebugLoggingMiddleware>();
-            app.UseRouting();
-            app.UseAuthorization();
-            app.UseAuthentication();
-            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+            // app.UseMiddleware<DebugLoggingMiddleware>();
+            app.UseMiddleware<JsonApiMiddleware>();
+            // app.UseRouting();
+            // app.UseAuthorization();
+            // app.UseAuthentication();
+            // app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }
     }
 }

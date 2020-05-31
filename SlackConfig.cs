@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace gamemaster
 {
     public class SlackConfig
@@ -8,5 +10,6 @@ namespace gamemaster
         public string SigningSecret { get; set; }
         public string VerificationToken { get; set; }
         public string OauthToken { get; set; }
+        public HashSet<string> Admins { get; set; }
     }
 }

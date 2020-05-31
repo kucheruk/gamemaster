@@ -9,7 +9,7 @@ namespace gamemaster.Controllers
 {
     public class DebugOnlyReadRequestBodyIntoItemsAttribute : AuthorizeAttribute, IAuthorizationFilter
     {
-        public  const string RequestBodyKey = "request_body";
+        public const string RequestBodyKey = "request_body";
 
         public void OnAuthorization(AuthorizationFilterContext context)
         {
@@ -24,14 +24,15 @@ namespace gamemaster.Controllers
                     req.Body.Seek(0, SeekOrigin.Begin);
                     using (var reader = new StreamReader(
                         req.Body,
-                        encoding: Encoding.UTF8,
-                        detectEncodingFromByteOrderMarks: false,
-                        bufferSize: 8192,
-                        leaveOpen: true))
+                        Encoding.UTF8,
+                        false,
+                        8192,
+                        true))
                     {
                         var jsonString = reader.ReadToEnd();
                         context.HttpContext.Items.Add(RequestBodyKey, jsonString);
                     }
+
                     req.Body.Seek(0, SeekOrigin.Begin);
                 }
             }
