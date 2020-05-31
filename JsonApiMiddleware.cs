@@ -84,7 +84,12 @@ namespace gamemaster
                                     parts.TryGetValue("text", out var text) &&
                                     parts.TryGetValue("response_url", out var responseUrl))
                                 {
-                                    var resp = await HandleCommand(user, command, text, responseUrl);
+                                    //channel_name=&
+                                    MessageContext mctx =
+                                        parts.TryGetValue("channel_name", out var ch) && ch == "directmessage"
+                                            ? MessageContext.Direct
+                                            : MessageContext.Group;
+                                    var resp = await HandleCommand(user, command, text, mctx, responseUrl);
                                     context.Response.StatusCode = 200;
                                     await context.Response.WriteAsync(resp.reason);
                                 }
@@ -100,7 +105,7 @@ namespace gamemaster
         }
         
         private async Task<(bool success, string reason)> HandleCommand(string user, string command,
-            string text, string responseUrl)
+            string text, MessageContext mctx, string responseUrl)
         {
             switch (command)
             {
@@ -109,7 +114,7 @@ namespace gamemaster
                     return _emissionHandler.HandleEmission(user, text, responseUrl);
                 case "/balance":
                 case "/sbalance":
-                    return _balanceHandler.HandleBalance(user, text, responseUrl);
+                    return _balanceHandler.HandleBalance(user, responseUrl, mctx);
                 case "/toss":
                 case "/stoss":
                     return _tossHandler.HandleToss(user, text, responseUrl);
@@ -119,13 +124,6 @@ namespace gamemaster
                     return (false, $"Не опознанная команда {command}");
                 }
             }
-        }
-
-        private  (bool success, string reason) HandleToss(string user, string text,
-            string responseUrl)
-        {
-            
-            return (false, "Not_implemented");
         }
 
         private static StringSegment GetMediaType(HttpRequest request)
