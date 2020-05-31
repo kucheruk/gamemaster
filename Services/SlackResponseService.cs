@@ -2,7 +2,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace gamemaster
+namespace gamemaster.Services
 {
     public class SlackResponseService
     {

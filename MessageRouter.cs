@@ -1,4 +1,5 @@
 using Akka.Actor;
+using gamemaster.Messages;
 
 namespace gamemaster
 {

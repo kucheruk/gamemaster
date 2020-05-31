@@ -1,9 +1,11 @@
 using System;
 using System.Threading.Tasks;
+using gamemaster.Db;
+using gamemaster.Models;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 
-namespace gamemaster
+namespace gamemaster.Commands
 {
     public class StoreJournalEntryCommand
     {

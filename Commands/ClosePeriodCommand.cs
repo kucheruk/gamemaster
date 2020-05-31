@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using gamemaster.Extensions;
+using gamemaster.Models;
 using Microsoft.Extensions.Logging;
 
-namespace gamemaster
+namespace gamemaster.Commands
 {
     public class ClosePeriodCommand
     {

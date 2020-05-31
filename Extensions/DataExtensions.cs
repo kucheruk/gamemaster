@@ -1,6 +1,7 @@
+using gamemaster.Db;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace gamemaster
+namespace gamemaster.Extensions
 {
     public static class DataExtensions
     {

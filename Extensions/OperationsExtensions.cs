@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
+using gamemaster.Models;
 
-namespace gamemaster
+namespace gamemaster.Extensions
 {
     public static class OperationsExtensions
     {

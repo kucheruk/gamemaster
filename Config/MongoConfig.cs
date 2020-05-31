@@ -1,4 +1,4 @@
-namespace gamemaster
+namespace gamemaster.Config
 {
     public class MongoConfig
     {

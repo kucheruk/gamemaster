@@ -3,8 +3,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Akka.Actor;
+using gamemaster.Commands;
+using gamemaster.Messages;
+using gamemaster.Models;
+using gamemaster.Queries;
+using gamemaster.Services;
 
-namespace gamemaster
+namespace gamemaster.Actors
 {
     public class LedgerActor : ReceiveActor
     {

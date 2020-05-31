@@ -1,9 +1,12 @@
 using System;
 using System.Threading.Tasks;
+using gamemaster.Config;
+using gamemaster.Models;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using Action = gamemaster.Models.Action;
 
-namespace gamemaster
+namespace gamemaster.Db
 {
     public class MongoStore
     {

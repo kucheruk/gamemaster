@@ -3,7 +3,7 @@ using Akka.Actor;
 using Akka.DI.Core;
 using Akka.Pattern;
 
-namespace gamemaster
+namespace gamemaster.Extensions
 {
     public static class ActorExtensions
     {

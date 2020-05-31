@@ -1,4 +1,4 @@
-namespace gamemaster
+namespace gamemaster.Messages
 {
     internal class MessageToChannel
     {

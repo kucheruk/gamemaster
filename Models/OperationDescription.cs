@@ -2,7 +2,7 @@ using System;
 using System.Runtime.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace gamemaster
+namespace gamemaster.Models
 {
     [BsonIgnoreExtraElements]
     [DataContract]

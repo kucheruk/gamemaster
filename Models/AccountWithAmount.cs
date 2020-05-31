@@ -1,4 +1,4 @@
-namespace gamemaster
+namespace gamemaster.Models
 {
     public readonly struct AccountWithAmount
     {

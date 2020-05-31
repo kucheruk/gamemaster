@@ -1,7 +1,9 @@
 using System;
 using System.Threading.Tasks;
+using gamemaster.Commands;
+using gamemaster.Queries;
 
-namespace gamemaster
+namespace gamemaster.Services
 {
     public class CurrentPeriodService
     {

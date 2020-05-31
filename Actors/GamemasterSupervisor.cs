@@ -1,6 +1,9 @@
 using Akka.Actor;
+using gamemaster.Extensions;
+using gamemaster.Messages;
+using gamemaster.Services;
 
-namespace gamemaster
+namespace gamemaster.Actors
 {
     public class GamemasterSupervisor : ReceiveActor
     {

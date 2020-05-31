@@ -1,6 +1,7 @@
 using System;
 using System.Security.Cryptography;
 using System.Text;
+using gamemaster.Config;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 

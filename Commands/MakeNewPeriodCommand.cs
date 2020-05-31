@@ -1,8 +1,10 @@
 using System;
 using System.Threading.Tasks;
+using gamemaster.Db;
+using gamemaster.Queries;
 using Microsoft.Extensions.Logging;
 
-namespace gamemaster
+namespace gamemaster.Commands
 {
     public class MakeNewPeriodCommand
     {

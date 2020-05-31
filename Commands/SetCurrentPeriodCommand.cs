@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
+using gamemaster.Queries;
 
-namespace gamemaster
+namespace gamemaster.Commands
 {
     public class SetCurrentPeriodCommand
     {

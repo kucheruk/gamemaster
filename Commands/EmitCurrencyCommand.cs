@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using gamemaster.Models;
 
-namespace gamemaster
+namespace gamemaster.Commands
 {
     public class EmitCurrencyCommand
     {

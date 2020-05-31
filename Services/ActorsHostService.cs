@@ -2,11 +2,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Akka.Actor;
 using Akka.DI.Core;
+using gamemaster.Actors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace gamemaster
+namespace gamemaster.Services
 {
     public class ActorsHostService : IHostedService
     {

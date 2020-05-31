@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace gamemaster
+namespace gamemaster.Config
 {
     public class SlackConfig
     {

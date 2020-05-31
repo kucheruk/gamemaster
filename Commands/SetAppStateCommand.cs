@@ -1,7 +1,9 @@
 using System.Threading.Tasks;
+using gamemaster.Db;
+using gamemaster.Models;
 using MongoDB.Driver;
 
-namespace gamemaster
+namespace gamemaster.Commands
 {
     public class SetAppStateCommand
     {

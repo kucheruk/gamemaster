@@ -1,4 +1,6 @@
-namespace gamemaster
+using gamemaster.Messages;
+
+namespace gamemaster.CommandHandlers
 {
     public class BalanceRequestHandler
     {

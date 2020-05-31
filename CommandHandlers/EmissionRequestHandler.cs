@@ -1,9 +1,10 @@
 using System.Linq;
 using System.Text.RegularExpressions;
+using gamemaster.Config;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace gamemaster
+namespace gamemaster.CommandHandlers
 {
     public class EmissionRequestHandler
     {

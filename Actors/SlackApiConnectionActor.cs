@@ -1,10 +1,12 @@
 using System.Threading.Tasks;
 using Akka.Actor;
+using gamemaster.Config;
+using gamemaster.Messages;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SlackAPI;
 
-namespace gamemaster
+namespace gamemaster.Actors
 {
     public class SlackApiConnectionActor : ReceiveActor
     {

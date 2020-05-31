@@ -1,7 +1,8 @@
-using System.IO;
+using gamemaster.CommandHandlers;
+using gamemaster.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace gamemaster
+namespace gamemaster.Extensions
 {
     public static class SlackCommandsExtensions
     {

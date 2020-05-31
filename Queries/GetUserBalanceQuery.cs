@@ -1,8 +1,11 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using gamemaster.Db;
+using gamemaster.Extensions;
+using gamemaster.Models;
 using MongoDB.Driver;
 
-namespace gamemaster
+namespace gamemaster.Queries
 {
     public class GetUserBalanceQuery
     {

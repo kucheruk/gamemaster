@@ -1,6 +1,10 @@
+using gamemaster.Actors;
+using gamemaster.Commands;
+using gamemaster.Queries;
+using gamemaster.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace gamemaster
+namespace gamemaster.Extensions
 {
     public static class LedgerExtensions
     {
