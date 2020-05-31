@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -86,25 +87,59 @@ namespace gamemaster.Actors
         }
 
 
-        private async Task ResponseWithBalance(GetBalanceMessage arg)
+        private async Task ResponseWithBalance(GetBalanceMessage msg)
         {
-            var resp = await _getUserBalance.GetAsync(_currentPeriod.Period, arg.UserId);
-            if (resp.Count > 0)
+            if (msg.Admin)
             {
-                var sb = new StringBuilder();
-                sb.AppendLine("У тебя на счету:");
-                foreach (var v in resp.OrderByDescending(a => a.Amount))
+                var resp = await _getUserBalance.GetAsync(_currentPeriod.Period);
+                if (resp.Count > 0)
                 {
-                    sb.AppendLine($"{v.Account.Currency}{v.Amount}");
+                    await FormatAndReplyWithSystemBalance(msg, resp);
                 }
-
-                sb.AppendLine("Вухуху, продолжай в том же духе!");
-                await _slackResponse.ResponseWithText(arg.ResponseUrl, sb.ToString(), true);
+                else
+                {
+                    await _slackResponse.ResponseWithText(msg.ResponseUrl, "Увы и ах, в системе пусто. Добавь монеток с помощью */emit*");
+                }
             }
             else
             {
-                await _slackResponse.ResponseWithText(arg.ResponseUrl, "Увы и ах, на счету пусто :cry:");
+                var resp = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.UserId);
+                if (resp.Count > 0)
+                {
+                    await FormatAndReplyWithUserBalance(msg, resp);
+                }
+                else
+                {
+                    await _slackResponse.ResponseWithText(msg.ResponseUrl, "Увы и ах, на счету пусто :cry:");
+                }
             }
+        }
+
+        private async Task FormatAndReplyWithUserBalance(GetBalanceMessage arg, List<AccountWithAmount> resp)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("У тебя на счету:");
+            foreach (var v in resp.OrderByDescending(a => a.Amount))
+            {
+                sb.AppendLine($"{v.Account.Currency}{v.Amount}");
+            }
+
+            sb.AppendLine("Вухуху, продолжай в том же духе!\nПодари кому-нибудь монетку с помощью */toss*");
+            await _slackResponse.ResponseWithText(arg.ResponseUrl, sb.ToString(), true, true);
+        }
+
+        private async Task FormatAndReplyWithSystemBalance(GetBalanceMessage arg, List<AccountWithAmount> resp)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine(":tada::tada::tada: В текущий момент на всех счетах!");
+            
+            foreach (var v in resp.OrderByDescending(a => a.Amount))
+            {
+                sb.AppendLine($"<@{v.Account.UserId}> {v.Account.Currency}{v.Amount}");
+            }
+
+            sb.AppendLine("Прекрасно! Давайте дарить друг другу монетки! Используйте /toss\n");
+            await _slackResponse.ResponseWithText(arg.ResponseUrl, sb.ToString(), true, true);
         }
 
         private async Task HandleEmissions(EmitMessage emitMessage)
