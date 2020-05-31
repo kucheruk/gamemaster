@@ -4,7 +4,7 @@ services:
   gamemaster.app:
     container_name: web_gm
     env_file:
-      - ../../.env
+      - ../.env
     build:
       context: .
     restart:
