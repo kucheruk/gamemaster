@@ -135,7 +135,10 @@ namespace gamemaster.Actors
             
             foreach (var v in resp.OrderByDescending(a => a.Amount))
             {
-                sb.AppendLine($"<@{v.Account.UserId}> {v.Account.Currency}{v.Amount}");
+                if (v.Account.UserId != Constants.CashAccount)
+                {
+                    sb.AppendLine($"<@{v.Account.UserId}> {v.Account.Currency}{v.Amount}");
+                }
             }
 
             sb.AppendLine("Прекрасно! Давайте дарить друг другу монетки! Используйте /toss\n");

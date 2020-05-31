@@ -89,7 +89,7 @@ namespace gamemaster
                                         parts.TryGetValue("channel_name", out var ch) && ch == "directmessage"
                                             ? MessageContext.Direct
                                             : MessageContext.Group;
-                                    var resp = await HandleCommand(user, command, text, mctx, responseUrl);
+                                    var resp = HandleCommand(user, command, text, mctx, responseUrl);
                                     context.Response.StatusCode = 200;
                                     await context.Response.WriteAsync(resp.reason);
                                 }
@@ -104,7 +104,7 @@ namespace gamemaster
             }
         }
         
-        private async Task<(bool success, string reason)> HandleCommand(string user, string command,
+        private (bool success, string reason) HandleCommand(string user, string command,
             string text, MessageContext mctx, string responseUrl)
         {
             switch (command)
