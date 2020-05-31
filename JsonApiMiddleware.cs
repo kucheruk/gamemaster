@@ -23,6 +23,7 @@ namespace gamemaster
         private readonly MessageRouter _router;
         private readonly SlackRequestSignature _slackSignature;
         private readonly BalanceRequestHandler _balanceHandler;
+        private readonly TossACoinHandler _tossHandler;
 
         public JsonApiMiddleware(RequestDelegate _,
             IOptions<SlackConfig> cfg,
@@ -30,7 +31,8 @@ namespace gamemaster
             MessageRouter router,
             SlackRequestSignature slackSignature,
             ILogger<JsonApiMiddleware> logger, 
-            BalanceRequestHandler balanceHandler)
+            BalanceRequestHandler balanceHandler, 
+            TossACoinHandler tossHandler)
         {
             _cfg = cfg;
             _emissionHandler = emissionHandler;
@@ -38,6 +40,7 @@ namespace gamemaster
             _slackSignature = slackSignature;
             _logger = logger;
             _balanceHandler = balanceHandler;
+            _tossHandler = tossHandler;
         }
 
         public async Task Invoke(HttpContext context)
@@ -95,21 +98,7 @@ namespace gamemaster
                 _logger.LogError(ex, "Error handling request");
             }
         }
-
-        /*
-         * [0] = {KeyValuePair<string,string>} "[token, YpUvoQkFQCcqzkTTtabgp3PS]"
-[1] = {KeyValuePair<string,string>} "[team_id, T0300UX2L]"
-[2] = {KeyValuePair<string,string>} "[team_domain, atisu]"
-[3] = {KeyValuePair<string,string>} "[channel_id, C998SRU82]"
-[4] = {KeyValuePair<string,string>} "[channel_name, security]"
-[5] = {KeyValuePair<string,string>} "[user_id, U033GDN1S]"
-[6] = {KeyValuePair<string,string>} "[user_name, kucheruk]"
-[7] = {KeyValuePair<string,string>} "[command, /semit]"
-[8] = {KeyValuePair<string,string>} "[text, <@U033GDN1S|kucheruk> 300]"
-[9] = {KeyValuePair<string,string>} "[response_url, https://hooks.slack.com/commands/T0300UX2L/1155378791794/HQyXaxghKAAlAeh23vfqIHBz]"
-[10] = {KeyValuePair<string,string>} "[trigger_id, 1179215454560.3000983088.1e74784f7830b6776ef66c666d05fd8b]"
-         */
-
+        
         private async Task<(bool success, string reason)> HandleCommand(string user, string command,
             string text, string responseUrl)
         {
@@ -123,7 +112,7 @@ namespace gamemaster
                     return _balanceHandler.HandleBalance(user, text, responseUrl);
                 case "/toss":
                 case "/stoss":
-                    return HandleToss(user, text, responseUrl);
+                    return _tossHandler.HandleToss(user, text, responseUrl);
                 default:
                 {
                     _logger.LogError("Unknown command {Command} from {User} with {Text}", command, user, text);
@@ -135,6 +124,7 @@ namespace gamemaster
         private  (bool success, string reason) HandleToss(string user, string text,
             string responseUrl)
         {
+            
             return (false, "Not_implemented");
         }
 

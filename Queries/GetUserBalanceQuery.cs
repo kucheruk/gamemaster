@@ -21,5 +21,12 @@ namespace gamemaster.Queries
             var recs = await _ms.Journal.Find(a => a.Period == period && a.UserId == userId).ToListAsync();
             return recs.ToAccountBalances();
         }
+
+        public async Task<List<AccountWithAmount>> GetAsync(string period, string userId, string currency)
+        {
+            var recs = await _ms.Journal.Find(a => a.Period == period && a.UserId == userId && a.Currency == currency)
+                .ToListAsync();
+            return recs.ToAccountBalances();
+        }
     }
 }

@@ -36,5 +36,10 @@ namespace gamemaster
         {
             _ledger.Tell(msg);
         }
+
+        public void LedgerToss(TossACoinMessage msg)
+        {
+            _ledger.Tell(msg);
+        }
     }
 }

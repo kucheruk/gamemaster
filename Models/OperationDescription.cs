@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.Serialization;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace gamemaster.Models
@@ -8,6 +9,16 @@ namespace gamemaster.Models
     [DataContract]
     public class OperationDescription
     {
+        public OperationDescription(string userId, string period,
+            string description)
+        {
+            UserId = userId;
+            Period = period;
+            Description = description;
+            Id = ObjectId.GenerateNewId().ToString();
+            CreatedOn = DateTime.Now;
+        }
+
         [BsonId] [DataMember] public string Id { get; set; }
 
         [DataMember] public DateTime CreatedOn { get; set; }

@@ -26,14 +26,7 @@ namespace gamemaster.Commands
         public async Task<OperationDescription> StoreAsync(string period, string userId,
             string description, List<AccountWithAmount> aggregated)
         {
-            var operationDescription = new OperationDescription
-            {
-                Id = ObjectId.GenerateNewId().ToString(),
-                Description = description,
-                UserId = userId,
-                Period = period,
-                CreatedOn = DateTime.Now
-            };
+            var operationDescription = new OperationDescription(userId, period, description);
             await _ms.Ops.InsertOneAsync(operationDescription);
             _logger.LogInformation("New Operation: {Period} {FromUser} {Description} {Id}", period, userId, description,
                 operationDescription.Id);
