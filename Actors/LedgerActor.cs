@@ -121,7 +121,10 @@ namespace gamemaster.Actors
             sb.AppendLine("У тебя на счету:");
             foreach (var v in resp.OrderByDescending(a => a.Amount))
             {
-                sb.AppendLine($"{v.Account.Currency}{v.Amount}");
+                if (v.Amount != 0)
+                {
+                    sb.AppendLine($"{v.Account.Currency}{v.Amount}");
+                }
             }
 
             sb.AppendLine("Вухуху, продолжай в том же духе!\nПодари кому-нибудь монетку с помощью */toss*");
@@ -135,13 +138,13 @@ namespace gamemaster.Actors
             
             foreach (var v in resp.OrderByDescending(a => a.Amount))
             {
-                if (v.Account.UserId != Constants.CashAccount)
+                if (v.Account.UserId != Constants.CashAccount && v.Amount != 0)
                 {
                     sb.AppendLine($"<@{v.Account.UserId}> {v.Account.Currency}{v.Amount}");
                 }
             }
 
-            sb.AppendLine("Прекрасно! Давайте дарить друг другу монетки! Используйте /toss\n");
+            sb.AppendLine("Прекрасно! Давайте дарить друг другу монетки! Используйте */toss*\n");
             await _slackResponse.ResponseWithText(arg.ResponseUrl, sb.ToString(), true, true);
         }
 
