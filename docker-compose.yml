@@ -39,8 +39,6 @@ services:
   gamemaster.db:
     image: mongo:latest
     container_name: db_gm
-    ports:
-      - 27017:27017
     restart:
       always
     volumes:
