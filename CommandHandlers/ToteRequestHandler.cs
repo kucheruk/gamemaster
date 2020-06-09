@@ -1,18 +1,29 @@
+using System;
+using System.Threading.Tasks;
 using gamemaster.Config;
-using gamemaster.Messages;
+using gamemaster.Models;
+using gamemaster.Services;
 using Microsoft.Extensions.Options;
 
 namespace gamemaster.CommandHandlers
 {
     public class ToteRequestHandler
     {
+        private readonly AddToteOptionCommand _addToteOption;
         private readonly IOptions<SlackConfig> _cfg;
-        private readonly MessageRouter _router;
+        private readonly CreateNewToteCommand _createNewTote;
+        private readonly GetCurrentToteForUserQuery _getCurrentTote;
+        private readonly SlackResponseService _slackResponse;
 
-        public ToteRequestHandler(MessageRouter router, IOptions<SlackConfig> cfg)
+        public ToteRequestHandler(IOptions<SlackConfig> cfg,
+            SlackResponseService slackResponse, CreateNewToteCommand createNewTote,
+            GetCurrentToteForUserQuery getCurrentTote, AddToteOptionCommand addToteOption)
         {
-            _router = router;
             _cfg = cfg;
+            _slackResponse = slackResponse;
+            _createNewTote = createNewTote;
+            _getCurrentTote = getCurrentTote;
+            _addToteOption = addToteOption;
         }
 
 
@@ -21,29 +32,98 @@ namespace gamemaster.CommandHandlers
             return _cfg.Value.Admins.Contains(user);
         }
 
-        public (bool success, string reason) HandleTote(string user, string text,
+        public async Task<(bool success, string reason)> HandleToteAsync(string user, string text,
             MessageContext context, string responseUrl)
         {
             if (text.StartsWith("help"))
             {
-                //print help
+                var helpResponse = LongMessagesToUser.ToteHelpMessage().ToString();
+                return (true, helpResponse);
             }
 
-            else if (string.IsNullOrEmpty(text))
+            if (string.IsNullOrEmpty(text))
             {
-                //default: print current totes info
+                var tote = await _getCurrentTote.GetAsync(user);
+                var response = LongMessagesToUser.ToteDetails(tote, user);
+                await _slackResponse.ResponseWithBlocks(responseUrl, response);
+                return (true, string.Empty);
             }
 
-            else if (text.StartsWith("new"))
+            if (text.StartsWith("add"))
             {
-                //new tote creation
-            }
-            
-            else if (text.StartsWith(""))
+                var tote = await _getCurrentTote.GetAsync(user);
+                if (tote.State == ToteState.Created)
+                {
+                    var option = text.Substring(4).Trim();
+                    if (string.IsNullOrEmpty(option))
+                    {
+                        return (false, "Формат команды: `/tote add Какой-то вариант на который можно делать ставку`");
+                    }
+
+                    var ret = await _addToteOption.AddAsync(tote, option);
+                    var response = LongMessagesToUser.ToteDetails(ret, user);
+                    await _slackResponse.ResponseWithBlocks(responseUrl, response);
+                    return (true, string.Empty);
+                }
+
+                return (false, "Добавлять варианты можно только пока тотализатор создан, но не запущен");
+            }     
+            if (text.StartsWith("add"))
             {
-                
+                var tote = await _getCurrentTote.GetAsync(user);
+                if (tote.State == ToteState.Created)
+                {
+                    var option = text.Substring(4).Trim();
+                    if (string.IsNullOrEmpty(option))
+                    {
+                        return (false, "Формат команды: `/tote add Какой-то вариант на который можно делать ставку`");
+                    }
+
+                    var ret = await _addToteOption.AddAsync(tote, option);
+                    var response = LongMessagesToUser.ToteDetails(ret, user);
+                    await _slackResponse.ResponseWithBlocks(responseUrl, response);
+                    return (true, string.Empty);
+                }
+
+                return (false, "Добавлять варианты можно только пока тотализатор создан, но не запущен");
             }
-            
+
+            if (text.StartsWith("new"))
+            {
+                var tote = await _getCurrentTote.GetAsync(user);
+                if (tote != null && (tote.State == ToteState.Created || tote.State == ToteState.Started))
+                {
+                    return (false,
+                        "Сначала нужно завершить текущий тотализатор. Нам просто слишком лениво обрабатывать много тотализаторов одновременно, сорян");
+                }
+
+                var rest = text.Substring(4).Trim();
+                var currency = CommandsPartsParse.FindCurrency(rest.Split(" "), ":coin:");
+                if (string.IsNullOrEmpty(currency))
+                {
+                    return (false,
+                        "Не понял в какой валюте запускать тотализатор. Пример запуска: `/tote new :currency: Кого уволят первым?`, где :currency: - любой тип монеток, существующий у пользователей на руках.");
+                }
+
+                rest = rest.Substring(rest.IndexOf(currency, StringComparison.OrdinalIgnoreCase), currency.Length)
+                    .Trim();
+
+                if (string.IsNullOrEmpty(rest))
+                {
+                    return (false,
+                        "Для старта тотализатора обязательно укажи его название. Например: `/tote new :currency: Кто победит в поедании печенек на скорость?`, где :currency: - любой тип монеток, существующий у пользователей на руках.");
+                }
+
+                var newTote = await _createNewTote.CreateNewAsync(user, currency, rest);
+                var response = LongMessagesToUser.ToteDetails(newTote, user);
+                await _slackResponse.ResponseWithBlocks(responseUrl, response);
+                return (true, string.Empty);
+            }
+
+            if (text.StartsWith(""))
+            {
+            }
+
             /*
  * tote todo
  * [x] giveaway command /toss amount :coin:

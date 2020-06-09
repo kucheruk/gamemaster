@@ -87,7 +87,7 @@ namespace gamemaster
                                     parts.TryGetValue("text", out var text) &&
                                     parts.TryGetValue("response_url", out var responseUrl))
                                 {
-                                    var mc =  GetMessageContext(parts);
+                                    var mc = GetMessageContext(parts);
                                     var resp = await HandleCommandAsync(user, command, text, mc, responseUrl);
                                     context.Response.StatusCode = 200;
                                     await context.Response.WriteAsync(resp.reason);
@@ -115,7 +115,7 @@ namespace gamemaster
 
                 case "/tote":
                 case "/stote":
-                    return _toteHandler.HandleTote(user, text, mctx, responseUrl);
+                    return await _toteHandler.HandleToteAsync(user, text, mctx, responseUrl);
                 case "/balance":
                 case "/sbalance":
                     return _balanceHandler.HandleBalance(user, responseUrl, mctx);
@@ -168,7 +168,7 @@ namespace gamemaster
         {
             if (parts.TryGetValue("channel_id", out var id) && parts.TryGetValue("channel_name", out var name))
             {
-                ChannelType ct = name switch
+                var ct = name switch
                 {
                     "privategroup" => ChannelType.Group,
                     "directmessage" => ChannelType.Direct,

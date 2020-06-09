@@ -27,6 +27,7 @@ namespace gamemaster
             services.Configure<MongoConfig>(Configuration.GetSection("Mongo"));
             services.AddMongoStorage();
             services.AddLedger();
+            services.AddTote();
             services.AddAppState();
             services.AddSlack();
             services.AddSingleton<MessageRouter>();

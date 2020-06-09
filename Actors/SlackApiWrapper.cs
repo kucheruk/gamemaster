@@ -14,6 +14,8 @@ namespace gamemaster.Actors
     public class SlackApiWrapper
     {
         private readonly SlackTaskClient _client;
+
+        private readonly ImmutableDictionary<string, User> _emptyUsers = ImmutableDictionary<string, User>.Empty;
         private readonly ILogger<SlackApiWrapper> _logger;
 
         public SlackApiWrapper(IOptions<SlackConfig> cfg, ILogger<SlackApiWrapper> logger)
@@ -25,6 +27,11 @@ namespace gamemaster.Actors
         public async Task PostAsync(MessageToChannel msg)
         {
             await _client.PostMessageAsync(msg.ChannelId, msg.Message);
+        }
+
+        public async Task PostAsync(MessageToChannel msg, IBlock[] blocks)
+        {
+            await _client.PostMessageAsync(msg.ChannelId, "", blocks: blocks);
         }
 
         public async Task<string[]> GetChannelMembers(MessageContext msg)
@@ -63,13 +70,10 @@ namespace gamemaster.Actors
             _logger.LogError("{Error} getting users from slack ", response.error);
             return _emptyUsers;
         }
-        
-        private readonly ImmutableDictionary<string, User> _emptyUsers = ImmutableDictionary<string, User>.Empty;
 
         public void IAmOnline()
         {
             _client.EmitPresence(Presence.active);
-
         }
     }
 }
