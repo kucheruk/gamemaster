@@ -1,15 +1,22 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using gamemaster.Actors;
 using gamemaster.Messages;
+using SlackAPI;
 
 namespace gamemaster.CommandHandlers
 {
     public class TossACoinHandler
     {
         private readonly MessageRouter _router;
+        private readonly SlackApiWrapper _slack;
 
-        public TossACoinHandler(MessageRouter router)
+        public TossACoinHandler(MessageRouter router, SlackApiWrapper slack)
         {
             _router = router;
+            _slack = slack;
         }
 
 
@@ -24,21 +31,29 @@ namespace gamemaster.CommandHandlers
                 {
                     return (false, "Не смогли определить какие именно монетки переводить");
                 }
-                var amount = CommandsPartsParse.FindInteger(parts, 0);
+
+                var (amountstr, amount) = CommandsPartsParse.FindDecimal(parts, 0);
                 if (amount <= 0)
                 {
                     return (false, "Не смогли найти в команде сколько монет переводим");
                 }
-    
+
+                var rest = text.Remove(text.IndexOf(currency, StringComparison.OrdinalIgnoreCase), currency.Length);
+                rest = rest.Remove(rest.IndexOf(amountstr, StringComparison.OrdinalIgnoreCase), amountstr.Length);
+
                 var userId = CommandsPartsParse.FindUserId(parts);
                 if (userId.HasValue)
                 {
-                    return HandleTransferToSingleUser(fromUser, responseUrl, currency, amount, userId);
+                    rest = rest.Remove(rest.IndexOf(userId.Value.part, StringComparison.OrdinalIgnoreCase),
+                        userId.Value.part.Length);
+
+                    return HandleTransferToSingleUser(fromUser, responseUrl, currency, amount, userId, rest.Trim());
                 }
+
 
                 if (mctx.Type == ChannelType.Group)
                 {
-                    return await HandleTransferToGroup(fromUser, responseUrl, currency, amount, parts, mctx);
+                    return await HandleTransferToGroup(fromUser, responseUrl, currency, amount, mctx, rest.Trim());
                 }
 
                 return (false, "Не смогли найти пользователя, которому отправить монеток");
@@ -49,32 +64,41 @@ namespace gamemaster.CommandHandlers
         }
 
         private async Task<(bool success, string reason)> HandleTransferToGroup(string fromUser, string responseUrl,
-            string currency, int amount, string[] parts, MessageContext channel)
+            string currency, decimal amount,
+            MessageContext channel, string comment)
         {
-            var m = new GetChannelUsersRequestMessage(channel);
-            var users = await _router.RpcToSlack<GetChannelUsersRequestMessage, string[]>(m);
-            if (users == null && m.Context.Type == ChannelType.Group)
+            var channelUsers = await _slack.GetChannelMembers(channel);
+            var allUsers = await _slack.GetUserListAsync();
+            channelUsers = FilterBots(channelUsers, allUsers);
+            if (channelUsers == null && channel.Type == ChannelType.Group)
             {
                 return (false,
                     "Если хочешь, чтоб я раскидал монеты по пользователям закрытого канала - добавь туда этого бота");
             }
-            else
+
+            if (channelUsers != null && channelUsers.Length > 1)
             {
-                if (users != null && users.Length > 1)
-                {
-                    _router.LedgerGiveAway(new GiveAwayMessage(fromUser, currency, responseUrl, amount, users));
-                    return (true, "Приказали гоблинам раскидать монетки всем пользователям канала...");
-                }
+                _router.LedgerGiveAway(new GiveAwayMessage(fromUser, currency, responseUrl, amount, channelUsers,
+                    channel,
+                    comment));
+                return (true, "Приказали гоблинам раскидать монетки всем пользователям канала...");
             }
-            return (true, "ok");
+
+            return (true, "Не очень-то понятно чего делать!");
+        }
+
+        private string[] FilterBots(string[] channelUsers, IDictionary<string, User> allUsers)
+        {
+            return channelUsers.Where(a => allUsers.TryGetValue(a, out var user) && !user.is_bot).ToArray();
         }
 
         private (bool success, string reason) HandleTransferToSingleUser(string fromUser, string responseUrl,
-            string currency, int amount, (string id, string name)? userId)
+            string currency, decimal amount,
+            (string id, string name)? userId, string comment)
         {
-                _router.LedgerToss(new TossACoinMessage(fromUser, currency, responseUrl, amount,
-                    userId.Value.id));
-                return (true, "Запрос на перевод отправлен гоблинам в банк, ожидай ответа");
+            _router.LedgerToss(new TossACoinMessage(fromUser, currency, responseUrl, amount,
+                userId.Value.id, comment));
+            return (true, "Запрос на перевод отправлен гоблинам в банк, ожидай ответа");
         }
     }
 }

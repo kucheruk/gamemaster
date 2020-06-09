@@ -26,7 +26,7 @@ namespace gamemaster.CommandHandlers
                     if (userId.HasValue)
                     {
                         var currency = CommandsPartsParse.FindCurrency(parts, Constants.DefaultCurrency);
-                        var amount = CommandsPartsParse.FindInteger(parts, 0);
+                        var (_, amount) = CommandsPartsParse.FindDecimal(parts, 0);
                         if (amount > 0)
                         {
                             _router.LedgerEmit(userId.Value.id, currency, amount, user, responseUrl);

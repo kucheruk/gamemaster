@@ -41,7 +41,7 @@ namespace gamemaster
         }
 
         public void LedgerEmit(string toUser, string currency,
-            in int amount, string adminId,
+            in decimal amount, string adminId,
             string responseUrl)
         {
             _ledger.Tell(new EmitMessage(toUser, currency, amount, adminId, responseUrl));

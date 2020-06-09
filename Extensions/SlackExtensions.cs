@@ -1,13 +1,15 @@
+using gamemaster.Actors;
 using gamemaster.CommandHandlers;
 using gamemaster.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace gamemaster.Extensions
 {
-    public static class SlackCommandsExtensions
+    public static class SlackExtensions
     {
-        public static void AddSlackSlashCommands(this IServiceCollection services)
+        public static void AddSlack(this IServiceCollection services)
         {
+            services.AddSingleton<SlackApiWrapper>();
             services.AddSingleton<EmissionRequestHandler>();
             services.AddSingleton<TossACoinHandler>();
             services.AddSingleton<BalanceRequestHandler>();

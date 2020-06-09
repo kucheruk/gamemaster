@@ -1,6 +1,6 @@
 namespace gamemaster.Messages
 {
-    internal class MessageToChannel
+    public class MessageToChannel
     {
         public MessageToChannel(string channelId, string message)
         {

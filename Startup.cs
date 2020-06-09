@@ -28,7 +28,7 @@ namespace gamemaster
             services.AddMongoStorage();
             services.AddLedger();
             services.AddAppState();
-            services.AddSlackSlashCommands();
+            services.AddSlack();
             services.AddSingleton<MessageRouter>();
             services.AddSingleton<SlackRequestSignature>();
             services.AddTransient<GamemasterSupervisor>();

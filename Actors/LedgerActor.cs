@@ -69,13 +69,15 @@ namespace gamemaster.Actors
             }
             else
             {
-                decimal amount = msg.Amount*1m / msg.Users.Length;
+                var amount = msg.Amount * 1m / msg.Users.Length;
                 foreach (var user in msg.Users)
                 {
-                    Self.Tell(new ValidatedTransferMessage(msg.FromUser, user, amount, msg.Currency));
+                    Self.Tell(new ValidatedTransferMessage(msg.FromUser, user, amount, msg.Currency,
+                        $"Раздача монеток для участников канала <@{msg.Channel.ChannelId}>"));
                 }
+
                 await _slackResponse.ResponseWithText(msg.ResponseUrl,
-                    $"Запрос выполнен, {msg.Currency}{msg.Amount} отправлены пользователям канала");
+                    $"Запрос выполнен, {msg.Currency}{msg.Amount} отправлены пользователям канала <@{msg.Channel.ChannelId}>");
             }
         }
 
@@ -105,17 +107,41 @@ namespace gamemaster.Actors
             }
             else
             {
-                Self.Tell(new ValidatedTransferMessage(msg.FromUser, msg.ToUser, msg.Amount, msg.Currency));
-                await _slackResponse.ResponseWithText(msg.ResponseUrl,
-                    $"Запрос выполнен, {msg.Currency}{msg.Amount} отправлены пользователю <@{toUser}>");
+                Self.Tell(new ValidatedTransferMessage(msg.FromUser, msg.ToUser, msg.Amount, msg.Currency,
+                    msg.Comment));
+                var reply = $"Запрос выполнен, {msg.Currency}{msg.Amount} отправлены пользователю <@{toUser}>";
+                if (!string.IsNullOrEmpty(msg.Comment))
+                {
+                    reply += $" с комментарием {msg.Comment}";
+                }
+
+                await _slackResponse.ResponseWithText(msg.ResponseUrl, reply);
             }
         }
 
         private async Task TransferToUser(ValidatedTransferMessage msg)
         {
             await _toss.TransferAsync(_currentPeriod.Period, msg.FromUser, msg.ToUser, msg.Amount, msg.Currency);
-            _router.ToSlackGateway(new MessageToChannel(msg.ToUser,
-                $"Привет! \nДень перестал быть томным, лови монетки!\nПеревод {msg.Currency}{msg.Amount} от <@{msg.FromUser}>.\nПроверить баланс: /balance"));
+
+            var hoho = new StringBuilder();
+            hoho.AppendLine("Привет!")
+                .AppendLine("День перестал быть томным, лови монетки!")
+                .AppendLine($"Перевод {msg.Currency}{msg.Amount} от <@{msg.FromUser}>.");
+
+            if (!string.IsNullOrEmpty(msg.Comment))
+            {
+                hoho.AppendLine("Комментарий к переводу:")
+                    .Append(">")
+                    .AppendLine(msg.Comment);
+            }
+
+            hoho.AppendLine()
+                .AppendLine("Что можно сделать с монетками:")
+                .AppendLine("`/balance` - посмотреть свой баланс")
+                .AppendLine("`/toss` - передать другому пользователю")
+                .AppendLine("`/tote` - сказочно разбогатеть с тотализатором")
+                .AppendLine("Всё в твоих руках!");
+            _router.ToSlackGateway(new MessageToChannel(msg.ToUser, hoho.ToString()));
         }
 
 

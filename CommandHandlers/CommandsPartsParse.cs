@@ -5,18 +5,17 @@ namespace gamemaster.CommandHandlers
 {
     public static class CommandsPartsParse
     {
-        public static readonly Regex IntRx = new Regex("^\\d+$", RegexOptions.Compiled);
         private static readonly Regex UserRx = new Regex("^<@([^|]+)\\|(.*?)>$");
 
-        public static int FindInteger(string[] parts, int def)
+        public static (string p, decimal) FindDecimal(string[] parts, int def)
         {
-            var p = parts.FirstOrDefault(IntRx.IsMatch);
+            var p = parts.FirstOrDefault(a => decimal.TryParse(a, out _));
             if (p != null)
             {
-                return int.Parse(p);
+                return (p, decimal.Round(decimal.Parse(p), 2));
             }
 
-            return def;
+            return (string.Empty, def);
         }
 
         public static string FindCurrency(string[] parts, string defaultCurrency)
@@ -25,7 +24,7 @@ namespace gamemaster.CommandHandlers
         }
 
         //<@U033GDN1S|kucheruk>
-        public static (string id, string name)? FindUserId(string[] parts)
+        public static (string id, string part)? FindUserId(string[] parts)
         {
             var uid = parts.FirstOrDefault(UserRx.IsMatch);
             if (uid == null)
@@ -34,7 +33,7 @@ namespace gamemaster.CommandHandlers
             }
 
             var p = UserRx.Match(uid);
-            return (p.Groups[1].ToString(), p.Groups[2].ToString());
+            return (p.Groups[1].ToString(), uid);
         }
     }
 }
