@@ -9,8 +9,11 @@ namespace gamemaster.Extensions
         {
             services.AddSingleton<GetCurrentToteForUserQuery>();
             services.AddSingleton<CreateNewToteCommand>();
+            services.AddSingleton<StartToteCommand>();
+            services.AddSingleton<CancelToteCommand>();
             services.AddSingleton<AddToteOptionCommand>();
             services.AddSingleton<GetToteByIdQuery>();
+            services.AddSingleton<RemoveToteOptionCommand>();
         }
     }
 }

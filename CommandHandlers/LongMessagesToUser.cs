@@ -167,5 +167,36 @@ namespace gamemaster.CommandHandlers
 
             return "Ошибка, да";
         }
+
+        public static IBlock[] ToteFinishMessage(Tote tote)
+        {
+            var blocks = new List<IBlock>();
+            blocks.Add(new SectionBlock()
+            {
+                text = new Text()
+                {
+                    type = TextTypes.Markdown,
+                    text = "Чтобы завершить тотализатор, выбери выигравший вариант. *Аккуратнее*, возможности поправить ошибку уже не будет! Победители ждут!"
+                }
+            });
+            var buttons = new List<IElement>();
+            foreach (var option in tote.Options.OrderBy(a => a.Number))
+            {
+                buttons.Add(new ButtonElement
+                {
+                    action_id = $"tote_finish:{tote.Id}:{option.Id}",
+                    text = new Text
+                    {
+                        type = TextTypes.PlainText,
+                        text = option.Name
+                    }
+                });
+            }
+            blocks.Add(new ActionsBlock()
+            {
+                elements = buttons.ToArray()
+            });
+            return blocks.ToArray();
+        }
     }
 }

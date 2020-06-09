@@ -6,7 +6,7 @@ namespace gamemaster.Extensions
 {
     public static class OperationsExtensions
     {
-        public static List<AccountWithAmount> ToAccountBalances(this List<JournalRecord> records)
+        public static List<AccountWithAmount> ToAccountBalances(this IEnumerable<JournalRecord> records)
         {
             var accounts = records.GroupBy(a => a.ToAccount())
                 .ToDictionary(a => a.Key, a => a.Sum(z => z.Amount))
@@ -15,7 +15,7 @@ namespace gamemaster.Extensions
             return accounts;
         }
 
-        public static List<AccountWithAmount> AggregateOperations(this List<AccountWithAmount> ops)
+        public static List<AccountWithAmount> AggregateOperations(this IEnumerable<AccountWithAmount> ops)
         {
             var newOps = ops.GroupBy(a => a.Account)
                 .Select(a => new AccountWithAmount(a.Key, a.Sum(v => v.Amount)))

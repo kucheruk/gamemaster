@@ -80,5 +80,20 @@ namespace gamemaster
         {
             _ledger.Tell(msg);
         }
+
+        public void LedgerCancelTote(ToteCancelledMessage msg)
+        {
+            _ledger.Tell(msg);
+        }
+
+        public void LedgerFinishTote(ToteFinishedMessage msg)
+        {
+            _ledger.Tell(msg);
+        }
+
+        public void LedgerPlaceBet(TotePlaceBetMessage msg)
+        {
+            _ledger.Tell(msg);
+        }
     }
 }

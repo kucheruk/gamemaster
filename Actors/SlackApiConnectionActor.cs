@@ -14,7 +14,13 @@ namespace gamemaster.Actors
             _router = router;
             _slack = slack;
             ReceiveAsync<MessageToChannel>(SendMessage);
+            ReceiveAsync<BlocksMessage>(SendBlocksMessage);
             ReceiveAsync<GetChannelUsersRequestMessage>(GetUsers);
+        }
+
+        private async Task SendBlocksMessage(BlocksMessage arg)
+        {
+            await _slack.PostAsync(arg.ChannelId, arg.Blocks);
         }
 
 
@@ -22,12 +28,13 @@ namespace gamemaster.Actors
         {
             await _slack.PostAsync(obj);
         }
-
+      
         private async Task GetUsers(GetChannelUsersRequestMessage msg)
         {
             var reply = await _slack.GetChannelMembers(msg.Context);
             Sender.Tell(reply);
         }
+
 
         protected override void PreStart()
         {

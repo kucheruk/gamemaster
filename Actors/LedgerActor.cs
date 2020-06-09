@@ -1,15 +1,18 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Akka.Actor;
 using gamemaster.CommandHandlers;
 using gamemaster.Commands;
+using gamemaster.Extensions;
 using gamemaster.Messages;
 using gamemaster.Models;
 using gamemaster.Queries;
 using gamemaster.Services;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 namespace gamemaster.Actors
 {
@@ -21,12 +24,14 @@ namespace gamemaster.Actors
         private readonly MessageRouter _router;
         private readonly SlackResponseService _slackResponse;
         private readonly TossCurrencyCommand _toss;
-
+        private readonly GetToteByIdQuery _getTote;
+        
         public LedgerActor(CurrentPeriodService currentPeriod,
             GetUserBalanceQuery getUserBalance,
             EmitCurrencyCommand emission,
             MessageRouter router,
-            SlackResponseService slackResponse, TossCurrencyCommand toss)
+            SlackResponseService slackResponse, TossCurrencyCommand toss,
+            GetToteByIdQuery getTote)
         {
             _currentPeriod = currentPeriod;
             _getUserBalance = getUserBalance;
@@ -34,6 +39,7 @@ namespace gamemaster.Actors
             _router = router;
             _slackResponse = slackResponse;
             _toss = toss;
+            _getTote = getTote;
             Become(Starting);
         }
 
@@ -42,7 +48,7 @@ namespace gamemaster.Actors
             ReceiveAsync<MsgTick>(Initialize);
         }
 
-        private async Task Initialize(MsgTick arg)
+        private async Task Initialize(MsgTick msg)
         {
             await _currentPeriod.InitializeAsync();
             Become(Started);
@@ -53,10 +59,86 @@ namespace gamemaster.Actors
             ReceiveAsync<EmitMessage>(HandleEmissions);
             ReceiveAsync<TossACoinMessage>(HandleToss);
             ReceiveAsync<GiveAwayMessage>(HandleGiveAway);
+            ReceiveAsync<ToteCancelledMessage>(HandleToteCancel);
+            ReceiveAsync<ToteFinishedMessage>(HandleToteFinish);
+            ReceiveAsync<TotePlaceBetMessage>(HandlePlaceBet);
             ReceiveAsync<GetBalanceMessage>(ResponseWithBalance);
             ReceiveAsync<ValidatedTransferMessage>(TransferToUser);
+            ReceiveAsync<ValidatedTransferAllFundsMessage>(TransferAll);
             ReceiveAsync<MsgTick>(async a => await NewPeriod());
         }
+
+        private async Task TransferAll(ValidatedTransferAllFundsMessage msg)
+        {
+            var balance = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.FromAccount, msg.Currency);
+            var b = balance.FirstOrDefault();
+            Self.Tell(new ValidatedTransferMessage(msg.FromAccount, msg.ToAccount, b.Amount, b.Account.Currency,
+                msg.OpDesc, false, msg.FromCaption));
+        }
+
+        private async Task HandlePlaceBet(TotePlaceBetMessage msg)
+        {
+            var tote = await _getTote.GetAsync(msg.ToteId);
+            if (tote.State != ToteState.Created)
+            {
+                throw new ValidationException("Неверный этап тотализатора для ставки");
+            }
+            if (msg.Amount <= 0.01m)
+            {
+                await _slackResponse.ResponseWithText(msg.ResponseUrl, "Мы принимаем только ставки, начиная с нищебродского 0.01", true);
+            }
+            var resp = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.User, tote.Currency);
+            if (resp.Count == 0 || resp[0].Amount < msg.Amount)
+            {
+                await _slackResponse.ResponseWithText(msg.ResponseUrl,
+                    $"Печально, но на твоём счёте нет столько {tote.Currency} :(");
+            }
+
+            Self.Tell(new ValidatedTransferMessage(msg.User, tote.Id, msg.Amount, tote.Currency, "Ставка на тотализатор", toServiceAccount:true ));
+        }
+
+        private async Task HandleToteFinish(ToteFinishedMessage msg)
+        {
+            var tote = await _getTote.GetAsync(msg.ToteId);
+            var bets = tote.Options.SelectMany(a => a.Bets);
+            var totalSum = bets.Sum(a => a.Amount);
+            
+            var ownerPercent = totalSum / 100;
+            var winningFund = totalSum - ownerPercent;
+            
+            var winningOption = tote.Options.FirstOrDefault(a => a.Number == msg.WinningNumber);
+            var winningBets = winningOption.Bets;
+            var winningBetsSum = winningBets.Sum(a => a.Amount);
+            
+            var ama = winningBets.Select(a => new AccountWithAmount(new Account(a.User, tote.Currency), a.Amount));
+            var agg = ama.AggregateOperations();
+            var proportions = agg.Select(a => new AccountWithAmount(a.Account, a.Amount / winningBetsSum));
+            var proportionalReward = proportions.Select(a =>
+                new AccountWithAmount(a.Account, decimal.Round(a.Amount * winningFund, 2)));
+            foreach (var reward in proportionalReward)
+            {
+                Self.Tell(new ValidatedTransferMessage(msg.ToteId, reward.Account.UserId, reward.Amount, tote.Currency,
+                    $"Поздравляем! Тотализатор \"{tote.Description}\" завершён, вот законный выигрыш!",
+                    false, $"(Тотализатор *{tote.Description}*)"));
+            }
+
+            Self.Tell(new ValidatedTransferAllFundsMessage(msg.ToteId, tote.Owner, tote.Currency,
+                "Ваше вознаграждение за проведённый тотализатор!", $"(Тотализатор *{tote.Description}*)"));
+                
+        }
+
+        private async Task HandleToteCancel(ToteCancelledMessage msg)
+        {
+            var tote = await _getTote.GetAsync(msg.ToteId);
+            var bets = tote.Options.SelectMany(a => a.Bets);
+            foreach (var bet in bets)
+            {
+                Self.Tell(new ValidatedTransferMessage(msg.ToteId, bet.User, bet.Amount, tote.Currency,
+                    "Тотализатор отмененён, возврат ставки", false, $"(Тотализатор *{tote.Description}*)"));
+            }
+        }
+        
+        
 
         private async Task HandleGiveAway(GiveAwayMessage msg)
         {
@@ -121,27 +203,30 @@ namespace gamemaster.Actors
 
         private async Task TransferToUser(ValidatedTransferMessage msg)
         {
-            await _toss.TransferAsync(_currentPeriod.Period, msg.FromUser, msg.ToUser, msg.Amount, msg.Currency);
-
-            var hoho = new StringBuilder();
-            hoho.AppendLine("Привет!")
-                .AppendLine("День перестал быть томным, лови монетки!")
-                .AppendLine($"Перевод {msg.Currency}{msg.Amount} от <@{msg.FromUser}>.");
-
-            if (!string.IsNullOrEmpty(msg.Comment))
+            await _toss.TransferAsync(_currentPeriod.Period, msg.FromAccount, msg.ToToAccount, msg.Amount, msg.Currency);
+            if (!msg.ToServiceAccount)
             {
-                hoho.AppendLine("Комментарий к переводу:")
-                    .Append(">")
-                    .AppendLine(msg.Comment);
-            }
+                var fromUserCaption = msg.FromUserCaption ?? $"<@{msg.FromAccount}>";
+                var hoho = new StringBuilder();
+                hoho.AppendLine("Привет!")
+                    .AppendLine("День перестал быть томным, лови монетки!")
+                    .AppendLine($"Перевод {msg.Currency}{msg.Amount} от {fromUserCaption}.");
 
-            hoho.AppendLine()
-                .AppendLine("Что можно сделать с монетками:")
-                .AppendLine("`/balance` - посмотреть свой баланс")
-                .AppendLine("`/toss` - передать другому пользователю")
-                .AppendLine("`/tote` - сказочно разбогатеть с тотализатором")
-                .AppendLine("Всё в твоих руках!");
-            _router.ToSlackGateway(new MessageToChannel(msg.ToUser, hoho.ToString()));
+                if (!string.IsNullOrEmpty(msg.Comment))
+                {
+                    hoho.AppendLine("Комментарий к переводу:")
+                        .Append(">")
+                        .AppendLine(msg.Comment);
+                }
+
+                hoho.AppendLine()
+                    .AppendLine("Что можно сделать с монетками:")
+                    .AppendLine("`/balance` - посмотреть свой баланс")
+                    .AppendLine("`/toss` - передать другому пользователю")
+                    .AppendLine("`/tote` - сказочно разбогатеть с тотализатором")
+                    .AppendLine("Всё в твоих руках!");
+                _router.ToSlackGateway(new MessageToChannel(msg.ToToAccount, hoho.ToString()));
+            }
         }
 
 
@@ -174,7 +259,7 @@ namespace gamemaster.Actors
             }
         }
 
-        private async Task FormatAndReplyWithUserBalance(GetBalanceMessage arg, List<AccountWithAmount> resp)
+        private async Task FormatAndReplyWithUserBalance(GetBalanceMessage msg, List<AccountWithAmount> resp)
         {
             var sb = new StringBuilder();
             sb.AppendLine("У тебя на счету:");
@@ -187,10 +272,10 @@ namespace gamemaster.Actors
             }
 
             sb.AppendLine("Вухуху, продолжай в том же духе!\nПодари кому-нибудь монетку с помощью */toss*");
-            await _slackResponse.ResponseWithText(arg.ResponseUrl, sb.ToString(), true, true);
+            await _slackResponse.ResponseWithText(msg.ResponseUrl, sb.ToString(), true, true);
         }
 
-        private async Task FormatAndReplyWithSystemBalance(GetBalanceMessage arg, List<AccountWithAmount> resp)
+        private async Task FormatAndReplyWithSystemBalance(GetBalanceMessage msg, List<AccountWithAmount> resp)
         {
             var sb = new StringBuilder();
             sb.AppendLine(":tada::tada::tada: В текущий момент на всех счетах!");
@@ -204,7 +289,7 @@ namespace gamemaster.Actors
             }
 
             sb.AppendLine("Прекрасно! Давайте дарить друг другу монетки! Используйте */toss*\n");
-            await _slackResponse.ResponseWithText(arg.ResponseUrl, sb.ToString(), true, true);
+            await _slackResponse.ResponseWithText(msg.ResponseUrl, sb.ToString(), true, true);
         }
 
         private async Task HandleEmissions(EmitMessage emitMessage)

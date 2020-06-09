@@ -26,5 +26,6 @@ namespace gamemaster.Models
         public ToteOption[] Options { get; set; }
         public DateTime? FinishedOn { get; set; }
         public DateTime? CancelledOn { get; set; }
+        public DateTime? StartedOn { get; set; }
     }
 }

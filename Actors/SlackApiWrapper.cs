@@ -29,9 +29,9 @@ namespace gamemaster.Actors
             await _client.PostMessageAsync(msg.ChannelId, msg.Message);
         }
 
-        public async Task PostAsync(MessageToChannel msg, IBlock[] blocks)
+        public async Task PostAsync(string channelId, IBlock[] blocks)
         {
-            await _client.PostMessageAsync(msg.ChannelId, "", blocks: blocks);
+            await _client.PostMessageAsync(channelId, "", blocks: blocks);
         }
 
         public async Task<string[]> GetChannelMembers(MessageContext msg)
