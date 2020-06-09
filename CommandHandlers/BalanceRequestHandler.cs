@@ -6,8 +6,8 @@ namespace gamemaster.CommandHandlers
 {
     public class BalanceRequestHandler
     {
-        private readonly MessageRouter _router;
         private readonly IOptions<SlackConfig> _cfg;
+        private readonly MessageRouter _router;
 
         public BalanceRequestHandler(MessageRouter router, IOptions<SlackConfig> cfg)
         {
@@ -16,13 +16,13 @@ namespace gamemaster.CommandHandlers
         }
 
         public (bool success, string reason) HandleBalance(string user,
-            string responseUrl, 
+            string responseUrl,
             MessageContext context)
         {
             _router.LedgerBalance(new GetBalanceMessage(user, IsAdmin(user), context, responseUrl));
             return (true, "Гоблины проверяют твоё банковское хранилище...");
         }
-        
+
         private bool IsAdmin(string user)
         {
             return _cfg.Value.Admins.Contains(user);

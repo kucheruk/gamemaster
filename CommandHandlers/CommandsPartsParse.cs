@@ -36,6 +36,5 @@ namespace gamemaster.CommandHandlers
             var p = UserRx.Match(uid);
             return (p.Groups[1].ToString(), p.Groups[2].ToString());
         }
-
     }
 }

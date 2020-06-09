@@ -22,6 +22,7 @@ namespace gamemaster.Db
             Journal = GetCollection<JournalRecord>("journal");
             Ops = GetCollection<OperationDescription>("ops");
             Players = GetCollection<Player>("players");
+            Totes = GetCollection<Tote>("totes");
             App = GetCollection<AppState>("appState");
         }
 
@@ -32,6 +33,7 @@ namespace gamemaster.Db
         public IMongoCollection<JournalRecord> Journal { get; }
         public IMongoCollection<AppState> App { get; set; }
         public IMongoCollection<Player> Players { get; set; }
+        public IMongoCollection<Tote> Totes { get; set; }
         public IMongoCollection<Action> Bright { get; set; }
 
         private IMongoCollection<T> GetCollection<T>(string col)

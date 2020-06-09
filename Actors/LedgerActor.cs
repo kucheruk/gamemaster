@@ -17,15 +17,15 @@ namespace gamemaster.Actors
     {
         private readonly CurrentPeriodService _currentPeriod;
         private readonly EmitCurrencyCommand _emission;
-        private readonly TossCurrencyCommand _toss;
         private readonly GetUserBalanceQuery _getUserBalance;
         private readonly MessageRouter _router;
         private readonly SlackResponseService _slackResponse;
+        private readonly TossCurrencyCommand _toss;
 
         public LedgerActor(CurrentPeriodService currentPeriod,
             GetUserBalanceQuery getUserBalance,
             EmitCurrencyCommand emission,
-            MessageRouter router, 
+            MessageRouter router,
             SlackResponseService slackResponse, TossCurrencyCommand toss)
         {
             _currentPeriod = currentPeriod;
@@ -52,8 +52,31 @@ namespace gamemaster.Actors
         {
             ReceiveAsync<EmitMessage>(HandleEmissions);
             ReceiveAsync<TossACoinMessage>(HandleToss);
+            ReceiveAsync<GiveAwayMessage>(HandleGiveAway);
             ReceiveAsync<GetBalanceMessage>(ResponseWithBalance);
+            ReceiveAsync<ValidatedTransferMessage>(TransferToUser);
             ReceiveAsync<MsgTick>(async a => await NewPeriod());
+        }
+
+        private async Task HandleGiveAway(GiveAwayMessage msg)
+        {
+            var resp = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.FromUser, msg.Currency);
+            if (resp.Count == 0 || resp[0].Amount < msg.Amount)
+            {
+                await _slackResponse.ResponseWithText(msg.ResponseUrl,
+                    $":cry: печально, но на счетах твоих нет столько {msg.Currency}.\nПроверить баланс можно командой /balance.",
+                    true);
+            }
+            else
+            {
+                decimal amount = msg.Amount*1m / msg.Users.Length;
+                foreach (var user in msg.Users)
+                {
+                    Self.Tell(new ValidatedTransferMessage(msg.FromUser, user, amount, msg.Currency));
+                }
+                await _slackResponse.ResponseWithText(msg.ResponseUrl,
+                    $"Запрос выполнен, {msg.Currency}{msg.Amount} отправлены пользователям канала");
+            }
         }
 
         private async Task HandleToss(TossACoinMessage msg)
@@ -65,25 +88,34 @@ namespace gamemaster.Actors
                 return;
             }
 
-            if (msg.FromUser == msg.ToUser)
+            var toUser = msg.ToUser;
+            if (msg.FromUser == toUser)
             {
                 await _slackResponse.ResponseWithText(msg.ResponseUrl,
                     "Мы конечно можем взять монетки из твоего хранилища и положить их обратно... Ну хорошо. Вжуууух! Сделано!");
                 return;
             }
+
             var resp = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.FromUser, msg.Currency);
             if (resp.Count == 0 || resp[0].Amount < msg.Amount)
             {
-                await _slackResponse.ResponseWithText(msg.ResponseUrl, $":cry: печально, но на счетах твоих нет столько {msg.Currency}.\nПроверить баланс можно командой /balance.", true);
+                await _slackResponse.ResponseWithText(msg.ResponseUrl,
+                    $":cry: печально, но на счетах твоих нет столько {msg.Currency}.\nПроверить баланс можно командой /balance.",
+                    true);
             }
             else
             {
-                await _toss.TransferAsync(_currentPeriod.Period, msg.FromUser, msg.ToUser, msg.Amount, msg.Currency);
+                Self.Tell(new ValidatedTransferMessage(msg.FromUser, msg.ToUser, msg.Amount, msg.Currency));
                 await _slackResponse.ResponseWithText(msg.ResponseUrl,
-                    $"Запрос выполнен, {msg.Currency}{msg.Amount} отправлены пользователю <@{msg.ToUser}>");
-                _router.ToSlackGateway(new MessageToChannel(msg.ToUser,
-                    $"Привет! \nДень перестал быть томным, лови монетки!\nПеревод {msg.Currency}{msg.Amount} от <@{msg.FromUser}>.\nПроверить баланс: /balance"));
+                    $"Запрос выполнен, {msg.Currency}{msg.Amount} отправлены пользователю <@{toUser}>");
             }
+        }
+
+        private async Task TransferToUser(ValidatedTransferMessage msg)
+        {
+            await _toss.TransferAsync(_currentPeriod.Period, msg.FromUser, msg.ToUser, msg.Amount, msg.Currency);
+            _router.ToSlackGateway(new MessageToChannel(msg.ToUser,
+                $"Привет! \nДень перестал быть томным, лови монетки!\nПеревод {msg.Currency}{msg.Amount} от <@{msg.FromUser}>.\nПроверить баланс: /balance"));
         }
 
 
@@ -98,7 +130,8 @@ namespace gamemaster.Actors
                 }
                 else
                 {
-                    await _slackResponse.ResponseWithText(msg.ResponseUrl, "Увы и ах, в системе пусто. Добавь монеток с помощью */emit*");
+                    await _slackResponse.ResponseWithText(msg.ResponseUrl,
+                        "Увы и ах, в системе пусто. Добавь монеток с помощью */emit*");
                 }
             }
             else
@@ -135,7 +168,7 @@ namespace gamemaster.Actors
         {
             var sb = new StringBuilder();
             sb.AppendLine(":tada::tada::tada: В текущий момент на всех счетах!");
-            
+
             foreach (var v in resp.OrderByDescending(a => a.Amount))
             {
                 if (v.Account.UserId != Constants.CashAccount && v.Amount != 0)

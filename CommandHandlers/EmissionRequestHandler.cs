@@ -1,6 +1,4 @@
-using System.Linq;
 using gamemaster.Config;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace gamemaster.CommandHandlers
@@ -27,7 +25,7 @@ namespace gamemaster.CommandHandlers
                     var userId = CommandsPartsParse.FindUserId(parts);
                     if (userId.HasValue)
                     {
-                        var currency =CommandsPartsParse. FindCurrency(parts, Constants.DefaultCurrency);
+                        var currency = CommandsPartsParse.FindCurrency(parts, Constants.DefaultCurrency);
                         var amount = CommandsPartsParse.FindInteger(parts, 0);
                         if (amount > 0)
                         {
@@ -35,7 +33,7 @@ namespace gamemaster.CommandHandlers
                             return (true, "Запрос на эмиссию монет прошёл успешно, обрабатываем");
                         }
 
-                        return (false, $"Не смогли найти сумму выпускаемых средст в запросе");
+                        return (false, "Не смогли найти сумму выпускаемых средст в запросе");
                     }
 
                     return (false, "Не смогли найти пользователя, на которого вводятся средства");
@@ -46,14 +44,11 @@ namespace gamemaster.CommandHandlers
 
             return (false, "Эмиссия средств доступна только администратору. Обидно, да!");
         }
-        
-        
+
 
         private bool IsAdmin(string user)
         {
             return _cfg.Value.Admins.Contains(user);
         }
-
-
     }
 }

@@ -11,6 +11,7 @@ namespace gamemaster.Extensions
             services.AddSingleton<EmissionRequestHandler>();
             services.AddSingleton<TossACoinHandler>();
             services.AddSingleton<BalanceRequestHandler>();
+            services.AddSingleton<ToteRequestHandler>();
             services.AddHttpClient<SlackResponseService>();
         }
     }

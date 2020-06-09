@@ -13,13 +13,16 @@ namespace gamemaster.Services
     {
         private readonly ILogger<ActorsHostService> _logger;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly MessageRouter _router;
         private ActorSystem _as;
         private MicrosoftDependencyResolver _resolver;
         private IActorRef _supervisor;
 
-        public ActorsHostService(IServiceScopeFactory scopeFactory, ILogger<ActorsHostService> logger)
+        public ActorsHostService(IServiceScopeFactory scopeFactory, MessageRouter router,
+            ILogger<ActorsHostService> logger)
         {
             _scopeFactory = scopeFactory;
+            _router = router;
             _logger = logger;
         }
 
@@ -31,7 +34,7 @@ log-config-on-start = on
 loggers = [""Akka.Logger.Serilog.SerilogLogger, Akka.Logger.Serilog""]
 actor { debug { lifecycle = on
 unhandled = on } } }");
-
+            _router.RegisterSystem(_as);
             _resolver = new MicrosoftDependencyResolver(_scopeFactory, _as);
             _logger.LogInformation("Starting up with actor dependency resolver of {Type}", _resolver.GetType());
             _supervisor = _as.ActorOf(_as.DI().Props<GamemasterSupervisor>()

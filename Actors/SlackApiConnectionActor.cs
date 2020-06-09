@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Akka.Actor;
 using gamemaster.Config;
@@ -22,6 +25,7 @@ namespace gamemaster.Actors
             _logger = logger;
             _router = router;
             ReceiveAsync<MessageToChannel>(SendMessage);
+            ReceiveAsync<GetChannelUsersRequestMessage>(GetUsers);
         }
 
 
@@ -30,6 +34,40 @@ namespace gamemaster.Actors
             await _client.PostMessageAsync(obj.ChannelId, obj.Message);
         }
 
+        private async Task GetUsers(GetChannelUsersRequestMessage msg)
+        {
+            if (msg.Context.Type == ChannelType.Group)
+            {
+                var groups = await _client.GetGroupsListAsync();
+                var group = groups.groups.FirstOrDefault(a => a.id == msg.Context.ChannelId);
+                if (group != null)
+                {
+                    Sender.Tell(group.members);
+                }
+            }
+            else if (msg.Context.Type == ChannelType.Channel)
+            {
+                var channels = await _client.GetChannelListAsync();
+                var channel = channels.channels.FirstOrDefault(a => a.id == msg.Context.ChannelId);
+                if (channel != null)
+                {
+                    Sender.Tell(channel.members);
+                }
+            }
+
+            Sender.Tell(Array.Empty<string>());
+        }
+        
+        private async Task GetAllUsers( )
+        {
+            var response = await _client.GetUserListAsync();
+            if (response.ok)
+            {
+                Sender.Tell(response.members);
+            }
+            _logger.LogError("{Error} getting users from slack ", response.error);
+            
+        }
 
         protected override void PreStart()
         {

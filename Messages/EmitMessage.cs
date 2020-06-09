@@ -3,7 +3,8 @@ namespace gamemaster.Messages
     public class EmitMessage
     {
         public EmitMessage(string toUser, string currency,
-            in int amount, string adminId, string responseUrl)
+            in int amount, string adminId,
+            string responseUrl)
         {
             ToUser = toUser;
             Currency = currency;

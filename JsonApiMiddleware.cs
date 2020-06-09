@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -17,22 +18,23 @@ namespace gamemaster
 {
     public class JsonApiMiddleware
     {
+        private readonly BalanceRequestHandler _balanceHandler;
         private readonly IOptions<SlackConfig> _cfg;
         private readonly EmissionRequestHandler _emissionHandler;
         private readonly ILogger<JsonApiMiddleware> _logger;
         private readonly MessageRouter _router;
         private readonly SlackRequestSignature _slackSignature;
-        private readonly BalanceRequestHandler _balanceHandler;
         private readonly TossACoinHandler _tossHandler;
+        private readonly ToteRequestHandler _toteHandler;
 
         public JsonApiMiddleware(RequestDelegate _,
             IOptions<SlackConfig> cfg,
             EmissionRequestHandler emissionHandler,
             MessageRouter router,
             SlackRequestSignature slackSignature,
-            ILogger<JsonApiMiddleware> logger, 
-            BalanceRequestHandler balanceHandler, 
-            TossACoinHandler tossHandler)
+            ILogger<JsonApiMiddleware> logger,
+            BalanceRequestHandler balanceHandler,
+            TossACoinHandler tossHandler, ToteRequestHandler toteHandler)
         {
             _cfg = cfg;
             _emissionHandler = emissionHandler;
@@ -41,6 +43,7 @@ namespace gamemaster
             _logger = logger;
             _balanceHandler = balanceHandler;
             _tossHandler = tossHandler;
+            _toteHandler = toteHandler;
         }
 
         public async Task Invoke(HttpContext context)
@@ -84,12 +87,8 @@ namespace gamemaster
                                     parts.TryGetValue("text", out var text) &&
                                     parts.TryGetValue("response_url", out var responseUrl))
                                 {
-                                    //channel_name=&
-                                    MessageContext mctx =
-                                        parts.TryGetValue("channel_name", out var ch) && ch == "directmessage"
-                                            ? MessageContext.Direct
-                                            : MessageContext.Group;
-                                    var resp = HandleCommand(user, command, text, mctx, responseUrl);
+                                    var mc =  GetMessageContext(parts);
+                                    var resp = await HandleCommandAsync(user, command, text, mc, responseUrl);
                                     context.Response.StatusCode = 200;
                                     await context.Response.WriteAsync(resp.reason);
                                 }
@@ -103,21 +102,26 @@ namespace gamemaster
                 _logger.LogError(ex, "Error handling request");
             }
         }
-        
-        private (bool success, string reason) HandleCommand(string user, string command,
-            string text, MessageContext mctx, string responseUrl)
+
+        private async Task<(bool success, string reason)> HandleCommandAsync(string user, string command,
+            string text, MessageContext mctx,
+            string responseUrl)
         {
             switch (command)
             {
                 case "/emit":
                 case "/semit":
                     return _emissionHandler.HandleEmission(user, text, responseUrl);
+
+                case "/tote":
+                case "/stote":
+                    return _toteHandler.HandleTote(user, text, mctx, responseUrl);
                 case "/balance":
                 case "/sbalance":
                     return _balanceHandler.HandleBalance(user, responseUrl, mctx);
                 case "/toss":
                 case "/stoss":
-                    return _tossHandler.HandleToss(user, text, responseUrl);
+                    return await _tossHandler.HandleTossAsync(user, text, responseUrl, mctx);
                 default:
                 {
                     _logger.LogError("Unknown command {Command} from {User} with {Text}", command, user, text);
@@ -158,6 +162,22 @@ namespace gamemaster
             }
 
             return Task.CompletedTask;
+        }
+
+        private MessageContext GetMessageContext(Dictionary<string, string> parts)
+        {
+            if (parts.TryGetValue("channel_id", out var id) && parts.TryGetValue("channel_name", out var name))
+            {
+                ChannelType ct = name switch
+                {
+                    "privategroup" => ChannelType.Group,
+                    "directmessage" => ChannelType.Direct,
+                    _ => ChannelType.Channel
+                };
+                return new MessageContext(ct, id);
+            }
+
+            throw new InvalidDataException("can't determine channel type and id");
         }
 
         private async Task ResponseChallenge(HttpResponse resp, string challenge,
