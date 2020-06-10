@@ -27,5 +27,10 @@ namespace gamemaster.Models
         public DateTime? FinishedOn { get; set; }
         public DateTime? CancelledOn { get; set; }
         public DateTime? StartedOn { get; set; }
+
+        public string AccountId()
+        {
+            return "tote_" + Id;
+        }
     }
 }

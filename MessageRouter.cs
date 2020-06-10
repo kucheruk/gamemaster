@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Akka.Actor;
 using gamemaster.CommandHandlers;
+using gamemaster.Extensions;
 using gamemaster.Messages;
 using Microsoft.Extensions.Logging;
 
@@ -13,6 +14,7 @@ namespace gamemaster
         private ActorSystem _as;
         private IActorRef _ledger;
         private IActorRef _slackGateway;
+        private IActorRef _userContexts;
 
         public MessageRouter(ILogger<MessageRouter> logger)
         {
@@ -94,6 +96,26 @@ namespace gamemaster
         public void LedgerPlaceBet(TotePlaceBetMessage msg)
         {
             _ledger.Tell(msg);
+        }
+
+        public void RegisterUserContextsActor(IActorRef @ref)
+        {
+            _userContexts = @ref;
+        }
+
+        public void StartBetProcess(PlaceBetStartMessage msg)
+        {
+            _userContexts.Tell(msg);
+        }
+
+        public void SelectBetOption(PlaceBetSelectOptionMessage msg)
+        {
+            _userContexts.Tell(msg);
+        }
+
+        public void BetInfo(PlaceBetMessage msg)
+        {
+            _userContexts.Tell(msg);
         }
     }
 }

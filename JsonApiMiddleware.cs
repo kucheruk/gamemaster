@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 using System.Web;
 using gamemaster.CommandHandlers;
 using gamemaster.Config;
+using gamemaster.Extensions;
 using gamemaster.Messages;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
-using MongoDB.Bson.Serialization.Serializers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -24,10 +24,10 @@ namespace gamemaster
         private readonly IOptions<SlackConfig> _cfg;
         private readonly EmissionRequestHandler _emissionHandler;
         private readonly ILogger<JsonApiMiddleware> _logger;
+        private readonly PlaceBetInteractionHandler _placeBetHandler;
         private readonly MessageRouter _router;
         private readonly SlackRequestSignature _slackSignature;
         private readonly TossACoinHandler _tossHandler;
-        private readonly StartBetInteractionHandler _startBetHandler;
         private readonly ToteRequestHandler _toteHandler;
 
         public JsonApiMiddleware(RequestDelegate _,
@@ -37,7 +37,9 @@ namespace gamemaster
             SlackRequestSignature slackSignature,
             ILogger<JsonApiMiddleware> logger,
             BalanceRequestHandler balanceHandler,
-            TossACoinHandler tossHandler, ToteRequestHandler toteHandler)
+            TossACoinHandler tossHandler,
+            ToteRequestHandler toteHandler,
+            PlaceBetInteractionHandler placeBetHandler)
         {
             _cfg = cfg;
             _emissionHandler = emissionHandler;
@@ -47,6 +49,7 @@ namespace gamemaster
             _balanceHandler = balanceHandler;
             _tossHandler = tossHandler;
             _toteHandler = toteHandler;
+            _placeBetHandler = placeBetHandler;
         }
 
         public async Task Invoke(HttpContext context)
@@ -75,15 +78,28 @@ namespace gamemaster
                                     return;
                                 }
 
+                                if (rq.ContainsKey("event"))
+                                {
+                                    var e = rq["event"];
+                                    if (e?["type"]?.ToString() == "message")
+                                    {
+                                        if (e?["bot_id"]?.ToString() == null)
+                                        {
+                                            var user = e["user"];
+                                            var text = e["text"];
+                                            _placeBetHandler.HandleUserText(user?.ToString(), text?.ToString());
+                                            context.Response.StatusCode = 200;
+                                            await context.Response.WriteAsync("");
+                                        }
+
+                                        return;
+                                    }
+                                }
+
                                 var uri = request.Path;
                                 if (rq["type"]?.ToString() == "event_callback")
                                 {
                                     await HandleEvent(context.Response, rq);
-                                }
-
-                                if (rq.ContainsKey("payload"))
-                                {
-                                    var payload = rq["payload"];
                                 }
                             }
                             else if (mediaType == "application/x-www-form-urlencoded")
@@ -106,7 +122,6 @@ namespace gamemaster
                                     await HandleInteractionAsync(pl);
                                     context.Response.StatusCode = 200;
                                     await context.Response.WriteAsync("еуые");
-                                    
                                 }
                             }
                         }
@@ -132,16 +147,40 @@ namespace gamemaster
 
         private void HandleInteractionAction(SlackInteractionAction action, string userId)
         {
+            if (action.ActionId.StartsWith("finish_tote"))
+            {
+                var parts = action.ActionId.Split(':');
+                HandleFinishTote(parts[1], parts[2], userId);
+            }
+
             if (action.ActionId.StartsWith("start_bet"))
             {
                 var parts = action.ActionId.Split(':');
                 HandleStartBet(parts[1], userId);
             }
+
+            if (action.ActionId.StartsWith("option_select"))
+            {
+                var parts = action.ActionId.Split(':');
+                HandleSelectNumber(parts[1], parts[2], userId);
+            }
         }
 
         private void HandleStartBet(string toteId, string userId)
         {
-            var tote = 
+            _router.StartBetProcess(new PlaceBetStartMessage(userId, toteId));
+        }
+
+        private void HandleSelectNumber(string toteId, string optionId,
+            string userId)
+        {
+            _router.SelectBetOption(new PlaceBetSelectOptionMessage(userId, toteId, optionId));
+        }
+
+        private void HandleFinishTote(string toteId, string optionId,
+            string userId)
+        {
+            _router.LedgerFinishTote(new ToteFinishedMessage(toteId, optionId, userId));
         }
 
         private SlackInteractionPayload DeserializePayload(string payload)

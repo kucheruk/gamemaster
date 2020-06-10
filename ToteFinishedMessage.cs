@@ -2,13 +2,16 @@ namespace gamemaster
 {
     public class ToteFinishedMessage
     {
-        public string ToteId { get; }
-        public int WinningNumber { get; }
-
-        public ToteFinishedMessage(string toteId, in int winningNumber)
+        public ToteFinishedMessage(string toteId, string optionId,
+            string userId)
         {
             ToteId = toteId;
-            WinningNumber = winningNumber;
+            OptionId = optionId;
+            UserId = userId;
         }
+
+        public string ToteId { get; }
+        public string OptionId { get; }
+        public string UserId { get; }
     }
 }

@@ -11,21 +11,21 @@ namespace gamemaster.CommandHandlers
     public class ToteRequestHandler
     {
         private readonly AddToteOptionCommand _addToteOption;
-        private readonly RemoveToteOptionCommand _removeToteOption;
+        private readonly CancelToteCommand _cancelTote;
         private readonly IOptions<SlackConfig> _cfg;
         private readonly CreateNewToteCommand _createNewTote;
         private readonly GetCurrentToteForUserQuery _getCurrentTote;
+        private readonly RemoveToteOptionCommand _removeToteOption;
+        private readonly MessageRouter _router;
         private readonly SlackResponseService _slackResponse;
         private readonly StartToteCommand _startTote;
-        private readonly CancelToteCommand _cancelTote;
-        private MessageRouter _router;
 
         public ToteRequestHandler(IOptions<SlackConfig> cfg,
-            SlackResponseService slackResponse, 
+            SlackResponseService slackResponse,
             CreateNewToteCommand createNewTote,
             GetCurrentToteForUserQuery getCurrentTote,
             AddToteOptionCommand addToteOption,
-            StartToteCommand startTote, 
+            StartToteCommand startTote,
             RemoveToteOptionCommand removeToteOption, CancelToteCommand cancelTote,
             MessageRouter router)
         {
@@ -53,34 +53,41 @@ namespace gamemaster.CommandHandlers
             {
                 return HandleToteHelp();
             }
+
             if (string.IsNullOrEmpty(text))
             {
                 return await HandleToteReport(user, responseUrl);
             }
+
             if (text.StartsWith("add"))
             {
                 return await HandleAddToteOption(user, text, responseUrl);
-            }     
+            }
+
             if (text.StartsWith("remove"))
             {
                 return await HandleRemoveToteOption(user, text, responseUrl);
             }
+
             if (text.StartsWith("new"))
             {
                 return await HandleToteCreation(user, text, responseUrl);
             }
+
             if (text.StartsWith("start"))
             {
                 return await HandleToteStart(user, text, responseUrl);
             }
+
             if (text.StartsWith("cancel"))
             {
                 return await HandleToteCancel(user, text, responseUrl);
             }
+
             if (text.StartsWith("finish"))
             {
                 return await HandleToteFinish(user, text, responseUrl);
-            } 
+            }
             /*
  * tote todo
  * [x] giveaway command /toss amount :coin:
@@ -133,7 +140,12 @@ namespace gamemaster.CommandHandlers
                 return (false, "Завершить можно только запущенный тотализатор");
             }
 
-            _router.ToSlackGateway(new BlocksMessage(LongMessagesToUser.ToteFinishMessage(tote), user));
+            if (tote.Owner != user)
+            {
+                return (false, "Завершить можно только свой тотализатор");
+            }
+
+            _router.ToSlackGateway(new BlocksMessage(LongMessagesToUser.ToteFinishButtons(tote), user));
             return (true, "Отправляем меню для выбора победителя");
         }
 
@@ -185,7 +197,7 @@ namespace gamemaster.CommandHandlers
 
             await _startTote.StartAsync(tote.Id);
             await _slackResponse.ResponseWithText(responseUrl,
-                "Тотализатор запущен. Самое время прорекламировать его в каналах! Используй `/tote`", true, false);
+                "Тотализатор запущен. Самое время прорекламировать его в каналах! Используй `/tote`", true);
             return (true, string.Empty);
         }
 
@@ -207,7 +219,7 @@ namespace gamemaster.CommandHandlers
                     "Не понял в какой валюте запускать тотализатор. Пример запуска: `/tote new :currency: Кого уволят первым?`, где :currency: - любой тип монеток, существующий у пользователей на руках.");
             }
 
-            rest = rest.Substring(rest.IndexOf(currency, StringComparison.OrdinalIgnoreCase), currency.Length)
+            rest = rest.Substring(rest.IndexOf(currency, StringComparison.OrdinalIgnoreCase) + currency.Length)
                 .Trim();
 
             if (string.IsNullOrEmpty(rest))
@@ -218,7 +230,7 @@ namespace gamemaster.CommandHandlers
 
             var newTote = await _createNewTote.CreateNewAsync(user, currency, rest);
             var response = LongMessagesToUser.ToteDetails(newTote, user);
-            await _slackResponse.ResponseWithBlocks(responseUrl, response);
+            await _slackResponse.ResponseWithBlocks(responseUrl, response, true);
             return (true, string.Empty);
         }
 
@@ -231,8 +243,13 @@ namespace gamemaster.CommandHandlers
         private async Task<(bool success, string reason)> HandleToteReport(string user, string responseUrl)
         {
             var tote = await _getCurrentTote.GetAsync(user);
+            if (tote == null)
+            {
+                return HandleToteHelp();
+            }
+
             var response = LongMessagesToUser.ToteDetails(tote, user);
-            await _slackResponse.ResponseWithBlocks(responseUrl, response);
+            await _slackResponse.ResponseWithBlocks(responseUrl, response, true);
             return (true, string.Empty);
         }
 
@@ -250,7 +267,7 @@ namespace gamemaster.CommandHandlers
 
                 var ret = await _addToteOption.AddAsync(tote, option);
                 var response = LongMessagesToUser.ToteDetails(ret, user);
-                await _slackResponse.ResponseWithBlocks(responseUrl, response);
+                await _slackResponse.ResponseWithBlocks(responseUrl, response, true);
                 return (true, string.Empty);
             }
 
@@ -271,7 +288,7 @@ namespace gamemaster.CommandHandlers
 
                 var ret = await _removeToteOption.RemoveAsync(tote, option);
                 var response = LongMessagesToUser.ToteDetails(ret, user);
-                await _slackResponse.ResponseWithBlocks(responseUrl, response);
+                await _slackResponse.ResponseWithBlocks(responseUrl, response, true);
                 return (true, string.Empty);
             }
 

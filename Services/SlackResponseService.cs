@@ -41,11 +41,13 @@ namespace gamemaster.Services
             response.EnsureSuccessStatusCode();
         }
 
-        public async Task ResponseWithBlocks(string responseUrl, List<IBlock> blocks)
+        public async Task ResponseWithBlocks(string responseUrl, List<IBlock> blocks,
+            bool inChannel)
         {
             var rq = JsonConvert.SerializeObject(new
             {
-                blocks
+                blocks,
+                response_type = inChannel ? "in_channel" : "ephemeral"
             }, _jsonSerializerSettings);
             _logger.LogInformation("Sending to slack! {Request}", rq);
             var response = await Client.PostAsync(responseUrl,

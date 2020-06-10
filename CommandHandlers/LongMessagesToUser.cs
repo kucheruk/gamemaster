@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,20 +9,22 @@ namespace gamemaster.CommandHandlers
 {
     public class LongMessagesToUser
     {
+        private static readonly int[] Cases = {2, 0, 1, 1, 1, 2};
+
         public static StringBuilder ToteHelpMessage(StringBuilder sb = null)
         {
             sb ??= new StringBuilder();
             sb.AppendLine("Тотализатор это замечательный способ разбогатеть. (Кому-то, вероятно не тебе)")
                 .AppendLine("Вот команды, с которыми можно сказочно разбогатеть:")
                 .AppendLine("`/tote` опубликовать информацию о текущем тотализаторе (можно прямо в канал для всех)")
-                .AppendLine("`/tote new Название или тема` - создаёт новый тотализатор");
-         
+                .AppendLine("`/tote new :currency: Название или тема` - создаёт новый тотализатор");
+
             AppendAddToteOption(sb);
             AppendRemoveToteOption(sb);
             AppendStartTote(sb);
             AppendFinishTote(sb);
             AppendCancelTote(sb);
-            
+
             sb
                 .AppendLine("_Кстати. При завершении тотализатора организатор получает процент от ставок._")
                 .AppendLine("Дерзай! Если что-то сделаешь неправильно - бот подскажет и поможет.");
@@ -59,23 +62,21 @@ namespace gamemaster.CommandHandlers
                     "`/tote add Вариант развития событий` - добавляет вариант, на который можно ставить деньги к текущему создаваемому тотализатору");
         }
 
-        public static List<IBlock> ToteDetails(Tote tote, string userId, StringBuilder sb = null)
+        public static List<IBlock> ToteDetails(Tote tote, string userId,
+            StringBuilder sb = null)
         {
             sb ??= new StringBuilder();
-            var allBets = tote.Options.SelectMany(a => a.Bets).ToList();
-            var participantsCount = allBets.Select(a => a.User).Distinct().Count();
-            var betsCount = allBets.Count;
-            var desc =  GetToteDescriptionMrkdwn(tote, sb, participantsCount, betsCount, allBets);
-            var hasBet = allBets.Any(a => a.User == userId);
-            List<IBlock> blocks = new List<IBlock>();
+            var desc = GetToteDescriptionMrkdwn(tote, sb);
+            var hasBet = tote.Options.SelectMany(a => a.Bets).Any(a => a.User == userId);
+            var blocks = new List<IBlock>();
             blocks.Add(new SectionBlock
             {
                 block_id = "tote_head",
-                text =new Text()
+                text = new Text
                 {
                     type = TextTypes.Markdown,
                     text = desc.ToString()
-                } 
+                }
             });
             if (tote.State == ToteState.Started)
             {
@@ -101,23 +102,9 @@ namespace gamemaster.CommandHandlers
             return blocks;
         }
 
-        private static StringBuilder GetToteDescriptionMrkdwn(Tote tote, StringBuilder sb,
-            int? participantsCount, int? betsCount,
-            List<ToteBet> allBets)
+        private static StringBuilder GetToteDescriptionMrkdwn(Tote tote, StringBuilder sb)
         {
-            sb.AppendLine("Детали о текущем тотализаторе")
-                .Append("Статус: ")
-                .AppendLine(ToteStatus(tote))
-                .AppendLine($"Участников: {participantsCount}")
-                .AppendLine($"Ставок: {betsCount}")
-                .AppendLine($"Всего поставлено: {allBets?.Sum(a => a.Amount)} {tote.Currency}")
-                .AppendLine($"==ТОТАЛИЗАТОР {tote.Description}==");
-            foreach (var option in tote.Options)
-            {
-                AddToteOption(option, tote, sb);
-            }
-
-            sb.AppendLine();
+            AddLongToteDescription(tote, sb);
             if (tote.State == ToteState.Created)
             {
                 AppendAddToteOption(sb);
@@ -125,33 +112,54 @@ namespace gamemaster.CommandHandlers
                 {
                     AppendRemoveToteOption(sb);
                 }
-                AppendCancelTote(sb);
-                if (tote.Options.Length > 1)
-                {
-                    AppendRemoveToteOption(sb);
-                }
-            }
 
-            if (tote.State == ToteState.Started)
-            {
-                AppendFinishTote(sb);
                 AppendCancelTote(sb);
             }
 
             return sb;
         }
 
-        private static void AddToteOption(ToteOption option, Tote tote, StringBuilder sb)
+        private static void AddLongToteDescription(Tote tote, StringBuilder sb)
         {
-            var participantsCount = option.Bets.Select(a => a.User).Distinct().Count();
-            sb.Append(
-                $"[{option.Number}] *{option.Name}*");
-            if (participantsCount > 0)
+            var allBets = tote.Options.SelectMany(a => a.Bets).ToList();
+            var participantsCount = allBets.Select(a => a.User).Distinct().Count();
+            var betsCount = allBets.Count;
+
+            sb.AppendLine("Детали о текущем тотализаторе")
+                .Append("Статус: ")
+                .AppendLine(ToteStatus(tote))
+                .AppendLine($"Участников: {participantsCount}")
+                .AppendLine($"Ставок: {betsCount}")
+                .AppendLine($"Всего поставлено: {allBets?.Sum(a => a.Amount)} {tote.Currency}")
+                .AppendLine($"==ТОТАЛИЗАТОР *{tote.Description}* ==");
+            foreach (var option in tote.Options)
             {
-                sb.Append($"Участников: {participantsCount} ставок на {option.Bets.Sum(a => a.Amount)} {tote.Currency}");
+                AddToteOption(option, tote, sb);
             }
 
             sb.AppendLine();
+        }
+
+        private static void AddToteOption(ToteOption option, Tote tote,
+            StringBuilder sb)
+        {
+            var participantsCount = option.Bets.Select(a => a.User).Distinct().Count();
+            sb.Append(
+                $"[{option.Number}] *{option.Name}* ");
+            if (participantsCount > 0)
+            {
+                sb.Append(
+                    $"сделано ставок на {option.Bets.Sum(a => a.Amount)} {tote.Currency} от {participantsCount} {Declination(participantsCount, "участника", "участников", "участников")}");
+            }
+
+            sb.AppendLine();
+        }
+
+        private static string Declination(int number, params string[] titles)
+        {
+            var a = number * 1m;
+            var i = Convert.ToInt32(a % 10 < 5 ? a % 10 : 5);
+            return titles[a % 100 > 4 && a % 100 < 20 ? 2 : Cases[i]];
         }
 
         private static string ToteStatus(Tote tote)
@@ -171,34 +179,59 @@ namespace gamemaster.CommandHandlers
             return "Ошибка, да";
         }
 
-        public static IBlock[] ToteFinishMessage(Tote tote)
+        public static StringBuilder WelcomeToTote(Tote tote, in decimal balanceAmount)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"Выбран тотализатор `{tote.Description}`.")
+                .AppendLine($"Монеты этого тотализатора: {tote.Currency}.");
+            AddLongToteDescription(tote, sb);
+
+            sb.AppendLine(balanceAmount > 0
+                ? $"На твоих счетах есть {balanceAmount} таких монет, ставь хоть все."
+                : "У тебя на счетах нет таких монет. Надо бы сначала их разыскать!");
+            return sb;
+        }
+
+        public static IBlock[] ToteOptionsButtons(Tote toteValue)
+        {
+            return ToteOptionsWithCta(toteValue, "Выбери вариант, который ты считаешь выигрышным", "option_select");
+        }
+
+        public static IBlock[] ToteFinishButtons(Tote toteValue)
+        {
+            return ToteOptionsWithCta(toteValue, "Который вариант выиграл?", "finish_tote");
+        }
+
+        private static IBlock[] ToteOptionsWithCta(Tote toteValue, string cta,
+            string actionIdKey)
         {
             var blocks = new List<IBlock>();
-            blocks.Add(new SectionBlock()
+            blocks.Add(new SectionBlock
             {
-                text = new Text()
+                text = new Text
                 {
-                    type = TextTypes.Markdown,
-                    text = "Чтобы завершить тотализатор, выбери выигравший вариант. *Аккуратнее*, возможности поправить ошибку уже не будет! Победители ждут!"
+                    text = cta,
+                    type = TextTypes.Markdown
                 }
             });
-            var buttons = new List<IElement>();
-            foreach (var option in tote.Options.OrderBy(a => a.Number))
+
+            var actions = new ActionsBlock();
+            var elements = new List<IElement>();
+            foreach (var option in toteValue.Options)
             {
-                buttons.Add(new ButtonElement
+                elements.Add(new ButtonElement
                 {
-                    action_id = $"tote_finish:{tote.Id}:{option.Id}",
+                    action_id = $"{actionIdKey}:{toteValue.Id}:{option.Id}",
                     text = new Text
                     {
-                        type = TextTypes.PlainText,
-                        text = option.Name
+                        text = $"{option.Name}",
+                        type = TextTypes.PlainText
                     }
                 });
             }
-            blocks.Add(new ActionsBlock()
-            {
-                elements = buttons.ToArray()
-            });
+
+            actions.elements = elements.ToArray();
+            blocks.Add(actions);
             return blocks.ToArray();
         }
     }

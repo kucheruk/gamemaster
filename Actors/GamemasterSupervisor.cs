@@ -14,8 +14,9 @@ namespace gamemaster.Actors
 
         private void StartupSystem(DbMainetanceDoneMessage arg)
         {
-            Context.ChildWithBackoffSupervision<SlackApiConnectionActor>();
             Context.ChildWithBackoffSupervision<LedgerActor>();
+            Context.ChildWithBackoffSupervision<SlackApiConnectionActor>();
+            Context.ChildWithBackoffSupervision<UserContextsActor>();
         }
 
         protected override void PreStart()

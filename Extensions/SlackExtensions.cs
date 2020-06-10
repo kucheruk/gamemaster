@@ -9,7 +9,6 @@ namespace gamemaster.Extensions
     {
         public static void AddSlack(this IServiceCollection services)
         {
-            services.AddSingleton<StartBetInteractionHandler>();
             services.AddSingleton<PlaceBetInteractionHandler>();
             services.AddSingleton<SlackApiWrapper>();
             services.AddSingleton<EmissionRequestHandler>();
@@ -18,9 +17,5 @@ namespace gamemaster.Extensions
             services.AddSingleton<ToteRequestHandler>();
             services.AddHttpClient<SlackResponseService>();
         }
-    }
-
-    public class PlaceBetInteractionHandler
-    {
     }
 }

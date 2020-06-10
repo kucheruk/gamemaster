@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace gamemaster.Messages
 {
     public class MessageToChannel
@@ -5,6 +7,11 @@ namespace gamemaster.Messages
         public MessageToChannel(string channelId, string message)
         {
             ChannelId = channelId;
+            if (string.IsNullOrEmpty(channelId))
+            {
+                Debugger.Break();
+            }
+
             Message = message;
         }
 

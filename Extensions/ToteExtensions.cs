@@ -7,8 +7,10 @@ namespace gamemaster.Extensions
     {
         public static void AddTote(this IServiceCollection services)
         {
+            services.AddSingleton<AddBetToToteCommand>();
             services.AddSingleton<GetCurrentToteForUserQuery>();
             services.AddSingleton<CreateNewToteCommand>();
+            services.AddSingleton<FinishToteCommand>();
             services.AddSingleton<StartToteCommand>();
             services.AddSingleton<CancelToteCommand>();
             services.AddSingleton<AddToteOptionCommand>();
