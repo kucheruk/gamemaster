@@ -9,7 +9,6 @@ namespace gamemaster.Messages
             ChannelId = channelId;
             if (string.IsNullOrEmpty(channelId))
             {
-                Debugger.Break();
             }
 
             Message = message;
