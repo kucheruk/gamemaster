@@ -54,6 +54,8 @@ namespace gamemaster.Services
                 new StringContent(rq, Encoding.UTF8, "application/json"));
 
             response.EnsureSuccessStatusCode();
+            var str = response.Content.ReadAsStringAsync();
+            
         }
     }
 }
