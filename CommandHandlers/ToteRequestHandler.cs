@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using gamemaster.Actors;
 using gamemaster.Config;
@@ -263,6 +264,11 @@ namespace gamemaster.CommandHandlers
                 if (string.IsNullOrEmpty(option))
                 {
                     return (false, "Формат команды: `/tote add Какой-то вариант на который можно делать ставку`");
+                }
+
+                if (tote.Options.Any(a => String.Equals(a.Name, text, StringComparison.InvariantCultureIgnoreCase)))
+                {
+                    return (false, "Не получится добавить два варианта с одинаковым названием. Но за попытку зачёт.");
                 }
 
                 var ret = await _addToteOption.AddAsync(tote, option);
