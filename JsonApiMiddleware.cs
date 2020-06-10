@@ -12,6 +12,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
+using MongoDB.Bson.Serialization.Serializers;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace gamemaster
@@ -25,6 +27,7 @@ namespace gamemaster
         private readonly MessageRouter _router;
         private readonly SlackRequestSignature _slackSignature;
         private readonly TossACoinHandler _tossHandler;
+        private readonly StartBetInteractionHandler _startBetHandler;
         private readonly ToteRequestHandler _toteHandler;
 
         public JsonApiMiddleware(RequestDelegate _,
@@ -77,6 +80,11 @@ namespace gamemaster
                                 {
                                     await HandleEvent(context.Response, rq);
                                 }
+
+                                if (rq.ContainsKey("payload"))
+                                {
+                                    var payload = rq["payload"];
+                                }
                             }
                             else if (mediaType == "application/x-www-form-urlencoded")
                             {
@@ -92,6 +100,14 @@ namespace gamemaster
                                     context.Response.StatusCode = 200;
                                     await context.Response.WriteAsync(resp.reason);
                                 }
+                                else if (parts.TryGetValue("payload", out var payload))
+                                {
+                                    var pl = DeserializePayload(payload);
+                                    await HandleInteractionAsync(pl);
+                                    context.Response.StatusCode = 200;
+                                    await context.Response.WriteAsync("еуые");
+                                    
+                                }
                             }
                         }
                     }
@@ -101,6 +117,36 @@ namespace gamemaster
             {
                 _logger.LogError(ex, "Error handling request");
             }
+        }
+
+        private async Task HandleInteractionAsync(SlackInteractionPayload pl)
+        {
+            if (pl.Actions.Count > 0)
+            {
+                foreach (var action in pl.Actions)
+                {
+                    HandleInteractionAction(action, pl.User.Id);
+                }
+            }
+        }
+
+        private void HandleInteractionAction(SlackInteractionAction action, string userId)
+        {
+            if (action.ActionId.StartsWith("start_bet"))
+            {
+                var parts = action.ActionId.Split(':');
+                HandleStartBet(parts[1], userId);
+            }
+        }
+
+        private void HandleStartBet(string toteId, string userId)
+        {
+            var tote = 
+        }
+
+        private SlackInteractionPayload DeserializePayload(string payload)
+        {
+            return JsonConvert.DeserializeObject<SlackInteractionPayload>(payload);
         }
 
         private async Task<(bool success, string reason)> HandleCommandAsync(string user, string command,

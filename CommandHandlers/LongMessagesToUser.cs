@@ -71,7 +71,7 @@ namespace gamemaster.CommandHandlers
             blocks.Add(new SectionBlock
             {
                 block_id = "tote_head",
-                text =new Text
+                text =new Text()
                 {
                     type = TextTypes.Markdown,
                     text = desc.ToString()
@@ -92,7 +92,7 @@ namespace gamemaster.CommandHandlers
                                 type = TextTypes.PlainText,
                                 text = betText
                             },
-                            action_id = $"start_bet:{tote.Id}:{userId}"
+                            action_id = $"start_bet:{tote.Id}"
                         }
                     }
                 });
@@ -125,8 +125,11 @@ namespace gamemaster.CommandHandlers
                 {
                     AppendRemoveToteOption(sb);
                 }
-
                 AppendCancelTote(sb);
+                if (tote.Options.Length > 1)
+                {
+                    AppendRemoveToteOption(sb);
+                }
             }
 
             if (tote.State == ToteState.Started)

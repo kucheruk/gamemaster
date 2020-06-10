@@ -18,7 +18,7 @@ namespace gamemaster.Db
             cs.ConnectTimeout = TimeSpan.FromSeconds(2);
             _mc = new MongoClient(cs);
             Db = _mc.GetDatabase(cfg.Value.DbName ?? "gamemaster");
-            Bright = GetCollection<Action>("actions");
+            Bright = GetCollection<SlackInteractionAction>("actions");
             Journal = GetCollection<JournalRecord>("journal");
             Ops = GetCollection<OperationDescription>("ops");
             Players = GetCollection<Player>("players");
@@ -34,7 +34,7 @@ namespace gamemaster.Db
         public IMongoCollection<AppState> App { get; set; }
         public IMongoCollection<Player> Players { get; set; }
         public IMongoCollection<Tote> Totes { get; set; }
-        public IMongoCollection<Action> Bright { get; set; }
+        public IMongoCollection<SlackInteractionAction> Bright { get; set; }
 
         private IMongoCollection<T> GetCollection<T>(string col)
         {

@@ -15,7 +15,7 @@ namespace gamemaster.Actors
     {
         private readonly SlackTaskClient _client;
 
-        private readonly ImmutableDictionary<string, User> _emptyUsers = ImmutableDictionary<string, User>.Empty;
+        private readonly IDictionary<string, User> _emptyUsers = ImmutableDictionary<string, User>.Empty;
         private readonly ILogger<SlackApiWrapper> _logger;
 
         public SlackApiWrapper(IOptions<SlackConfig> cfg, ILogger<SlackApiWrapper> logger)
