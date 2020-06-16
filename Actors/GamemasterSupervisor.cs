@@ -15,7 +15,6 @@ namespace gamemaster.Actors
         private void StartupSystem(DbMainetanceDoneMessage arg)
         {
             Context.ChildWithBackoffSupervision<LedgerActor>();
-            Context.ChildWithBackoffSupervision<SlackApiConnectionActor>();
             Context.ChildWithBackoffSupervision<UserContextsActor>();
         }
 

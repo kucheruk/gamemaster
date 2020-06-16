@@ -1,12 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
+using System.Web;
 using gamemaster.Config;
 using gamemaster.Messages;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using SlackAPI;
 
 namespace gamemaster.Actors
@@ -17,11 +21,15 @@ namespace gamemaster.Actors
 
         private readonly IDictionary<string, User> _emptyUsers = ImmutableDictionary<string, User>.Empty;
         private readonly ILogger<SlackApiWrapper> _logger;
+        private readonly IHttpClientFactory _http;
+        private readonly string _token;
 
-        public SlackApiWrapper(IOptions<SlackConfig> cfg, ILogger<SlackApiWrapper> logger)
+        public SlackApiWrapper(IOptions<SlackConfig> cfg, ILogger<SlackApiWrapper> logger, IHttpClientFactory http)
         {
+            _token = cfg.Value.OauthToken;
             _client = new SlackTaskClient(cfg.Value.OauthToken);
             _logger = logger;
+            _http = http;
         }
 
         public async Task PostAsync(MessageToChannel msg)
@@ -29,38 +37,47 @@ namespace gamemaster.Actors
             await _client.PostMessageAsync(msg.ChannelId, msg.Message);
         }
 
-        public async Task UpdateMessage(string channelId, IBlock[] blocks, string ts)
+        public async Task PostAsync(BlocksMessage msg)
         {
-            await _client.UpdateAsync(ts, channelId, null, blocks:blocks);
+            await _client.PostMessageAsync(msg.ChannelId, text:string.Empty, blocks:msg.Blocks);
+        }
+        private readonly JsonSerializerSettings _jsonSerializerSettings = new JsonSerializerSettings
+        {
+            NullValueHandling = NullValueHandling.Ignore
+        };
+
+        public async Task<string> UpdateMessage(string channelId, IBlock[] blocks, string ts)
+        {
+            var http = _http.CreateClient();
+            var b = HttpUtility.UrlEncode(JsonConvert.SerializeObject(blocks, _jsonSerializerSettings));
+            var uri =
+                $"https://slack.com/api/chat.update?token={_token}&channel={channelId}&ts={ts}&blocks={b}&text=";
+            var resp = await http.GetStringAsync(uri);
+            
+            //var resp =await _client.UpdateAsync(ts, channelId, string.Empty, blocks:blocks); //broken, as_user is deprecated by slack, but still sent by SlackApi lib
+            return resp;
         }
 
-        public async Task PostAsync(string channelId, IBlock[] blocks)
+        public async Task<PostMessageResponse> PostAsync(string channelId, IBlock[] blocks)
         {
-            await _client.PostMessageAsync(channelId, "", blocks: blocks);
+            var response = await _client.PostMessageAsync(channelId, "", blocks: blocks);
+            return response;
         }
 
         public async Task<string[]> GetChannelMembers(MessageContext msg)
         {
-            if (msg.Type == ChannelType.Group)
+            var http = _http.CreateClient();
+            var uri =
+                $"https://slack.com/api/conversations.members?token={_token}&channel={msg.ChannelId}&limit={999}";
+            var resp = await http.GetAsync(uri);
+            if (!resp.IsSuccessStatusCode)
             {
-                var groups = await _client.GetGroupsListAsync();
-                var group = groups.groups.FirstOrDefault(a => a.id == msg.ChannelId);
-                if (group != null)
-                {
-                    return group.members;
-                }
-            }
-            else if (msg.Type == ChannelType.Channel)
-            {
-                var channels = await _client.GetChannelListAsync();
-                var channel = channels.channels.FirstOrDefault(a => a.id == msg.ChannelId);
-                if (channel != null)
-                {
-                    return channel.members;
-                }
+                return Array.Empty<string>();
             }
 
-            return Array.Empty<string>();
+            var stream = await resp.Content.ReadAsStreamAsync();
+            var r = TryDeserializeFromStream<ConversationsMembersResponse>(stream);
+            return r.Ok ? r.Members : Array.Empty<string>();
         }
 
         public async Task<IDictionary<string, User>> GetUserListAsync()
@@ -80,5 +97,53 @@ namespace gamemaster.Actors
         {
             _client.EmitPresence(Presence.active);
         }
+        
+        
+        private static T TryDeserializeFromStream<T>(Stream stream, bool isErrorStream = false)
+        {
+            if (isErrorStream)
+            {
+                try
+                {
+                    return DeserializeFromStream<T>(stream);
+                }
+                catch (JsonSerializationException ex)
+                {
+                    return default(T);
+                }
+                catch (JsonReaderException ex)
+                {
+                    return default(T);
+                }
+            }
+
+            return DeserializeFromStream<T>(stream);
+        }
+
+        private static T DeserializeFromStream<T>(Stream stream)
+        {
+            if (stream.CanRead)
+            {
+                using (var streamReader = new StreamReader(stream))
+                using (var jsonReader = new JsonTextReader(streamReader))
+                {
+                    return JsonSerializer.Deserialize<T>(jsonReader);
+                }
+            }
+     
+            return default(T);
+        }
+        private static readonly JsonSerializer JsonSerializer = new JsonSerializer();
+
+        
+    }
+
+    public class ConversationsMembersResponse
+    {
+        [JsonProperty("ok")]
+        public bool Ok { get; set; }
+        
+        [JsonProperty("members")]
+        public string[] Members { get; set; }
     }
 }

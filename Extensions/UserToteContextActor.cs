@@ -8,6 +8,7 @@ using gamemaster.Messages;
 using gamemaster.Models;
 using gamemaster.Queries;
 using gamemaster.Services;
+using Microsoft.Extensions.Logging;
 
 namespace gamemaster.Extensions
 {
@@ -21,40 +22,49 @@ namespace gamemaster.Extensions
         private string _tote;
         private Tote _toteValue;
         private ToteOption _option;
+        private readonly SlackApiWrapper _slack;
+        private readonly ILogger<UserToteContextActor> _logger;
 
-        public UserToteContextActor(MessageRouter router,  CurrentPeriodService cp,  GetToteByIdQuery getTote, GetUserBalanceQuery balance)
+        public UserToteContextActor(MessageRouter router, 
+            CurrentPeriodService cp, 
+            GetToteByIdQuery getTote,
+            GetUserBalanceQuery balance,
+            SlackApiWrapper slack, 
+            ILogger<UserToteContextActor> logger)
         {
             _router = router;
             _cp = cp;
             _getTote = getTote;
             _balance = balance;
+            _slack = slack;
+            _logger = logger;
             ReceiveAsync<PlaceBetStartMessage>(SetTote);
-            Receive<PlaceBetMessage>(a => PlaceBet(a));
-            Receive<PlaceBetSelectOptionMessage>(a => SelectNumber(a));
+            ReceiveAsync<PlaceBetMessage>(PlaceBet);
+            ReceiveAsync<PlaceBetSelectOptionMessage>(SelectNumber);
             Receive<ReceiveTimeout>(Stop);
         }
 
-        private void SelectNumber(PlaceBetSelectOptionMessage msg)
+        private async Task SelectNumber(PlaceBetSelectOptionMessage msg)
         {
             var option = _toteValue.Options.FirstOrDefault(a => a.Id == msg.OptionId);
             if (option == null)
             {
-                _router.ToSlackGateway(new MessageToChannel(_user,
+                await _slack.PostAsync(new MessageToChannel(_user,
                     $"В этот тотализаторе не найден вариант с id {msg.OptionId}"));
             }
             else
             {
                 _option = option;
-                _router.ToSlackGateway(new MessageToChannel(_user,
+                await _slack.PostAsync(new MessageToChannel(_user,
                     $"Сохранили номер выбранного тобою варианта: [{option.Number}] ({option.Name})\nТеперь напиши мне количество монет, которые готов поставить. Просто числом."));
             }
         }
 
-        private void PlaceBet(PlaceBetMessage msg)
+        private async Task PlaceBet(PlaceBetMessage msg)
         {
             if (_option == null)
             {
-                _router.ToSlackGateway(new MessageToChannel(_user, $"Прежде чем сделать ставку, нужно выбрать на что ты ставишь - используй одну из кнопок вариантов"));
+                await _slack.PostAsync(new MessageToChannel(_user, $"Прежде чем сделать ставку, нужно выбрать на что ты ставишь - используй одну из кнопок вариантов"));
             }
             else
             {
@@ -65,7 +75,7 @@ namespace gamemaster.Extensions
                 }
                 else
                 {
-                    _router.ToSlackGateway(new MessageToChannel(_user, $"В течении ближайших минут ждём от тебя число - количество {_toteValue.Currency}, которое ты готов поставить."));
+                    await _slack.PostAsync(new MessageToChannel(_user, $"В течении ближайших минут ждём от тебя число - количество {_toteValue.Currency}, которое ты готов поставить."));
                 }
             }
         }
@@ -78,15 +88,21 @@ namespace gamemaster.Extensions
             _toteValue = await _getTote.GetAsync(pars.ToteId);
             var balance = await _balance.GetAsync(_cp.Period, _user, _toteValue.Currency);
             var balanceAmount = balance.Count > 0 ? balance[0].Amount : 0;
-            _router.ToSlackGateway(new MessageToChannel(_user, LongMessagesToUser.WelcomeToTote(_toteValue, balanceAmount).ToString()));
-            _router.ToSlackGateway(new BlocksMessage(LongMessagesToUser.ToteOptionsButtons(_toteValue), _user));
+            await _slack.PostAsync(new MessageToChannel(_user, LongMessagesToUser.WelcomeToTote(_toteValue, balanceAmount).ToString()));
+            await _slack.PostAsync(new BlocksMessage(LongMessagesToUser.ToteOptionsButtons(_toteValue), _user));
         }
 
         private void Stop(ReceiveTimeout obj)
         {
             Self.GracefulStop(TimeSpan.FromMilliseconds(10));
         }
-        
+
+        protected override void PreRestart(Exception reason, object message)
+        {
+            _logger.LogError(reason, "Error");
+            base.PreRestart(reason, message);
+        }
+
         protected override void PreStart()
         {
             Context.SetReceiveTimeout(TimeSpan.FromMinutes(5));

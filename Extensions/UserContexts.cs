@@ -1,19 +1,30 @@
+using System;
+using System.Threading.Tasks;
 using Akka.Actor;
 using Akka.DI.Core;
+using Akka.Event;
+using gamemaster.Actors;
 using gamemaster.Messages;
+using Microsoft.Extensions.Logging;
 
 namespace gamemaster.Extensions
 {
     public class UserContextsActor : ReceiveActor
     {
         private readonly MessageRouter _router;
-        
-        public UserContextsActor(MessageRouter router)
+        private readonly SlackApiWrapper _slack;
+        private ILogger<UserContextsActor> _logger;
+
+        public UserContextsActor(MessageRouter router,
+            SlackApiWrapper slack,
+            ILogger<UserContextsActor> logger)
         {
             _router = router;
-            Receive<PlaceBetMessage>(PlaceBetAmount);
+            _slack = slack;
+            _logger = logger;
+            ReceiveAsync<PlaceBetMessage>(PlaceBetAmount);
             Receive<PlaceBetStartMessage>(StartBetDialog);
-            Receive<PlaceBetSelectOptionMessage>(SelectNumber);
+            ReceiveAsync<PlaceBetSelectOptionMessage>(SelectNumber);
         }
 
         protected override void PreStart()
@@ -33,12 +44,12 @@ namespace gamemaster.Extensions
             child.Forward(msg);
         }
         
-        private bool SelectNumber(PlaceBetSelectOptionMessage msg)
+        private async Task<bool> SelectNumber(PlaceBetSelectOptionMessage msg)
         {
             var child = Context.Child($"bet_{msg.UserId}");
             if (child.IsNobody())
             {
-                _router.ToSlackGateway(new MessageToChannel(msg.UserId, "Время выбора деталей ставки истекло. Нажми-ка кнопку для участия в тотализаторе ещё раз."));
+                await _slack.PostAsync(new MessageToChannel(msg.UserId, "Время выбора деталей ставки истекло. Нажми-ка кнопку для участия в тотализаторе ещё раз."));
             }
             else
             {
@@ -47,12 +58,13 @@ namespace gamemaster.Extensions
 
             return true;
         }
-        private bool PlaceBetAmount(PlaceBetMessage msg)
+        private async Task<bool> PlaceBetAmount(PlaceBetMessage msg)
         {
+            _logger.LogInformation("Place bet {user} {text}", msg.UserId, msg.Text);
             var child = Context.Child($"bet_{msg.UserId}");
             if (child.IsNobody())
             {
-                _router.ToSlackGateway(new MessageToChannel(msg.UserId, "Время выбора деталей ставки истекло. Нажми-ка кнопку для участия в тотализаторе ещё раз."));
+                await _slack.PostAsync(new MessageToChannel(msg.UserId, "Время выбора деталей ставки истекло. Нажми-ка кнопку для участия в тотализаторе ещё раз."));
             }
             else
             {
@@ -60,6 +72,12 @@ namespace gamemaster.Extensions
             }
 
             return true;
+        }
+
+        protected override void PreRestart(Exception reason, object message)
+        {
+            _logger.LogError(reason, "Error");
+            base.PreRestart(reason, message);
         }
     }
 }

@@ -33,7 +33,6 @@ namespace gamemaster
             services.AddSingleton<MessageRouter>();
             services.AddSingleton<SlackRequestSignature>();
             services.AddTransient<GamemasterSupervisor>();
-            services.AddTransient<SlackApiConnectionActor>();
             services.AddTransient<UserContextsActor>();
             services.AddTransient<UserToteContextActor>();
             services.AddSingleton<IHostedService, ActorsHostService>();

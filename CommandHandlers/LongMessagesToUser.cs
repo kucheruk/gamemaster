@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using gamemaster.Actors;
 using gamemaster.Models;
 using SlackAPI;
 
@@ -62,12 +63,10 @@ namespace gamemaster.CommandHandlers
                     "`/tote add Вариант развития событий` - добавляет вариант, на который можно ставить деньги к текущему создаваемому тотализатору");
         }
 
-        public static List<IBlock> ToteDetails(Tote tote, string userId,
-            StringBuilder sb = null)
+        public static List<IBlock> ToteDetails(Tote tote, StringBuilder sb = null)
         {
             sb ??= new StringBuilder();
             var desc = GetToteDescriptionMrkdwn(tote, sb);
-            var hasBet = tote.Options.SelectMany(a => a.Bets).Any(a => a.User == userId);
             var blocks = new List<IBlock>();
             blocks.Add(new SectionBlock
             {
@@ -80,7 +79,6 @@ namespace gamemaster.CommandHandlers
             });
             if (tote.State == ToteState.Started)
             {
-                var betText = hasBet ? "Хочу сделать ещё одну ставку!" : "Хочу сделать ставку!";
                 blocks.Add(new ActionsBlock
                 {
                     block_id = "tote_actions",
@@ -91,7 +89,7 @@ namespace gamemaster.CommandHandlers
                             text = new Text
                             {
                                 type = TextTypes.PlainText,
-                                text = betText
+                                text = "Хочу сделать ставку!"
                             },
                             action_id = $"start_bet:{tote.Id}"
                         }
@@ -233,6 +231,22 @@ namespace gamemaster.CommandHandlers
             actions.elements = elements.ToArray();
             blocks.Add(actions);
             return blocks.ToArray();
+        }
+
+        public static string ToteWinners(Tote tote, ToteWinnersLoosersReportMessage msg)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"Тотализатор *{tote.Description}* завершён!");
+            sb.AppendLine($"Победил вариант {msg.Option}");
+            sb.AppendLine($"Комиссия организатора составила {msg.OwnerPercent} {tote.Currency}");
+            sb.AppendLine("Выигрыши:");
+            foreach (var rAmount in msg.Rewards.OrderByDescending(a => a.Amount))
+            {
+                sb.AppendLine($"<@{rAmount.Account.UserId}> {rAmount.Amount} {tote.Currency}");
+            }
+
+            sb.AppendLine("Всем спасибо за участие!");
+            return sb.ToString();
         }
     }
 }

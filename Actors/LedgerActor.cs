@@ -24,28 +24,40 @@ namespace gamemaster.Actors
         private readonly GetUserBalanceQuery _getUserBalance;
         private readonly ILogger<LedgerActor> _logger;
         private readonly MessageRouter _router;
+        private readonly SlackApiWrapper _slack;
         private readonly SlackResponseService _slackResponse;
         private readonly TossCurrencyCommand _toss;
         private readonly FinishToteCommand _finishTote;
+        private readonly SaveToteReportPointCommand _saveToteReportPoint;
+        private readonly GetToteReportsQuery _toteReports;
 
         public LedgerActor(CurrentPeriodService currentPeriod,
             GetUserBalanceQuery getUserBalance,
             EmitCurrencyCommand emission,
             MessageRouter router,
-            SlackResponseService slackResponse, TossCurrencyCommand toss,
-            GetToteByIdQuery getTote, ILogger<LedgerActor> logger,
-            AddBetToToteCommand addBetToTote, FinishToteCommand finishTote)
+            SlackApiWrapper slack,
+            SlackResponseService slackResponse, 
+            TossCurrencyCommand toss,
+            GetToteByIdQuery getTote, 
+            ILogger<LedgerActor> logger,
+            AddBetToToteCommand addBetToTote, 
+            FinishToteCommand finishTote,
+            SaveToteReportPointCommand saveToteReportPoint, 
+            GetToteReportsQuery toteReports)
         {
             _currentPeriod = currentPeriod;
             _getUserBalance = getUserBalance;
             _emission = emission;
             _router = router;
+            _slack = slack;
             _slackResponse = slackResponse;
             _toss = toss;
             _getTote = getTote;
             _logger = logger;
             _addBetToTote = addBetToTote;
             _finishTote = finishTote;
+            _saveToteReportPoint = saveToteReportPoint;
+            _toteReports = toteReports;
             Become(Starting);
         }
 
@@ -69,9 +81,36 @@ namespace gamemaster.Actors
             ReceiveAsync<ToteFinishedMessage>(HandleToteFinish);
             ReceiveAsync<TotePlaceBetMessage>(HandlePlaceBet);
             ReceiveAsync<GetBalanceMessage>(ResponseWithBalance);
+            ReceiveAsync<ToteStatusMessage>(CreateNewToteStatusReportInSlack);
+            ReceiveAsync<ToteWinnersLoosersReportMessage>(ReportWinnersLoosersInSlack);
+            ReceiveAsync<UpdateToteReportsMessage>(UpdateToteReports);
             ReceiveAsync<ValidatedTransferMessage>(TransferToUser);
             ReceiveAsync<ValidatedTransferAllFundsMessage>(TransferAll);
             ReceiveAsync<MsgTick>(async a => await NewPeriod());
+        }
+
+        private async Task ReportWinnersLoosersInSlack(ToteWinnersLoosersReportMessage msg)
+        {
+            var reports = await _toteReports.GetAsync(msg.ToteId);
+            var tote = await _getTote.GetAsync(msg.ToteId);
+            var toteReport = LongMessagesToUser.ToteWinners(tote, msg);
+            
+            foreach (var report in reports)
+            {
+                await _slack.PostAsync(new MessageToChannel(report.ChannelId, toteReport));
+            }
+        }
+
+        private async Task UpdateToteReports(UpdateToteReportsMessage arg)
+        {
+            var reports = await _toteReports.GetAsync(arg.ToteId);
+            var tote = await _getTote.GetAsync(arg.ToteId);
+            var toteReport = LongMessagesToUser.ToteDetails(tote);
+            
+            foreach (var report in reports)
+            {
+                await _slack.UpdateMessage(report.ChannelId, toteReport.ToArray(), report.MessageTs);
+            }
         }
 
         private async Task TransferAll(ValidatedTransferAllFundsMessage msg)
@@ -93,14 +132,14 @@ namespace gamemaster.Actors
             var tote = await _getTote.GetAsync(msg.ToteId);
             if (tote.State != ToteState.Started)
             {
-                _router.ToSlackGateway(new MessageToChannel(msg.User,
+                await _slack.PostAsync(new MessageToChannel(msg.User,
                     "В тотализатор на данном этапе невозможно сделать ставку"));
                 return;
             }
 
             if (msg.Amount <= 0.01m)
             {
-                _router.ToSlackGateway(new MessageToChannel(msg.User,
+                await _slack.PostAsync(new MessageToChannel(msg.User,
                     "Мы принимаем только ставки, начиная с нищебродского 0.01"));
                 return;
             }
@@ -108,7 +147,7 @@ namespace gamemaster.Actors
             var resp = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.User, tote.Currency);
             if (resp.Count == 0 || resp[0].Amount < msg.Amount)
             {
-                _router.ToSlackGateway(new MessageToChannel(msg.User,
+                await _slack.PostAsync(new MessageToChannel(msg.User,
                     $"Печально, но на твоём счёте нет столько {tote.Currency} :("));
                 return;
             }
@@ -117,8 +156,9 @@ namespace gamemaster.Actors
             await _addBetToTote.AddAsync(tote.Id, msg.OptionId, msg.User, msg.Amount);
             Self.Tell(new ValidatedTransferMessage(msg.User, tote.AccountId(), msg.Amount, tote.Currency,
                 "Ставка на тотализатор", true));
-            _router.ToSlackGateway(new MessageToChannel(msg.User,
+            await _slack.PostAsync(new MessageToChannel(msg.User,
                 $"Ваша ставка в количестве {tote.Currency}{msg.Amount} отправлена на счёт тотализатора!"));
+            Self.Tell(new UpdateToteReportsMessage(tote.Id));
         }
 
         private async Task HandleToteFinish(ToteFinishedMessage msg)
@@ -126,7 +166,7 @@ namespace gamemaster.Actors
             var tote = await _getTote.GetAsync(msg.ToteId);
             if (tote.State != ToteState.Started)
             {
-                _router.ToSlackGateway(new MessageToChannel(msg.UserId, "Чот не получается завершить тотализатор. А ты случаем не жулик?"));
+                await _slack.PostAsync(new MessageToChannel(msg.UserId, "Чот не получается завершить тотализатор. А ты случаем не жулик?"));
                 return;
             }
             var bets = tote.Options.SelectMany(a => a.Bets);
@@ -155,6 +195,8 @@ namespace gamemaster.Actors
 
             Self.Tell(new ValidatedTransferAllFundsMessage(tote.AccountId(), tote.Owner, tote.Currency,
                 "Ваше вознаграждение за проведённый тотализатор!", $"(Тотализатор *{tote.Description}*)"));
+            Self.Tell(new UpdateToteReportsMessage(tote.Id));
+            Self.Tell(new ToteWinnersLoosersReportMessage(winningOption.Name, tote.Id, winningBets, proportionalReward.ToArray(), ownerPercent, tote.Owner));
         }
 
         private async Task HandleToteCancel(ToteCancelledMessage msg)
@@ -166,6 +208,7 @@ namespace gamemaster.Actors
                 Self.Tell(new ValidatedTransferMessage(msg.ToteId, bet.User, bet.Amount, tote.Currency,
                     "Тотализатор отмененён, возврат ставки", false, $"(Тотализатор *{tote.Description}*)"));
             }
+            Self.Tell(new UpdateToteReportsMessage(tote.Id));
         }
 
 
@@ -184,7 +227,7 @@ namespace gamemaster.Actors
                 foreach (var user in msg.Users)
                 {
                     Self.Tell(new ValidatedTransferMessage(msg.FromUser, user, amount, msg.Currency,
-                        $"Раздача монеток для участников канала <@{msg.Channel.ChannelId}>"));
+                        $"Раздача монеток для участников канала <#{msg.Channel.ChannelId}>"));
                 }
 
                 await _slackResponse.ResponseWithText(msg.ResponseUrl,
@@ -226,7 +269,7 @@ namespace gamemaster.Actors
                     reply += $" с комментарием {msg.Comment}";
                 }
 
-                _router.ToSlackGateway(new MessageToChannel(msg.FromUser,
+                await _slack.PostAsync(new MessageToChannel(msg.FromUser,
                     $"Ваш перевод на {msg.Currency}{msg.Amount} выполнен. {msg.Comment}"));
                 await _slackResponse.ResponseWithText(msg.ResponseUrl, reply);
             }
@@ -256,7 +299,7 @@ namespace gamemaster.Actors
                     .AppendLine("`/toss` - передать другому пользователю")
                     .AppendLine("`/tote` - сказочно разбогатеть с тотализатором")
                     .AppendLine("Всё в твоих руках!");
-                _router.ToSlackGateway(new MessageToChannel(msg.ToAccount, hoho.ToString()));
+                await _slack.PostAsync(new MessageToChannel(msg.ToAccount, hoho.ToString()));
             }
         }
 
@@ -326,6 +369,18 @@ namespace gamemaster.Actors
             await _slackResponse.ResponseWithText(msg.ResponseUrl, sb.ToString(), true, true);
         }
 
+
+        private async Task CreateNewToteStatusReportInSlack(ToteStatusMessage msg)
+        {
+            var response = LongMessagesToUser.ToteDetails(msg.Tote);
+
+            var mess = await _slack.PostAsync(msg.Context.ChannelId, response.ToArray());
+            if (mess.ok)
+            {
+                await _saveToteReportPoint.SaveAsync(msg.Context, mess.ts, msg.Tote.Id);
+            }
+        }
+        
         private async Task HandleEmissions(EmitMessage emitMessage)
         {
             await _emission.StoreEmissionAsync(_currentPeriod.Period, emitMessage.AdminId,
@@ -367,6 +422,12 @@ namespace gamemaster.Actors
             Self.Tell(MsgTick.Instance);
             ScheduleNextPeriodTick(NextPeriodTimestamp());
             base.PreStart();
+        }
+
+        public override void AroundPreRestart(Exception cause, object message)
+        {
+            _logger.LogError(cause, "Error in Ledger {Message}", message);
+            base.AroundPreRestart(cause, message);
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using gamemaster.Actors;
 using gamemaster.Messages;
+using Microsoft.Extensions.Logging;
 using SlackAPI;
 
 namespace gamemaster.CommandHandlers
@@ -12,11 +13,14 @@ namespace gamemaster.CommandHandlers
     {
         private readonly MessageRouter _router;
         private readonly SlackApiWrapper _slack;
+        private readonly ILogger<TossACoinHandler> _logger;
 
-        public TossACoinHandler(MessageRouter router, SlackApiWrapper slack)
+        public TossACoinHandler(MessageRouter router, SlackApiWrapper slack,
+            ILogger<TossACoinHandler> logger)
         {
             _router = router;
             _slack = slack;
+            _logger = logger;
         }
 
 
@@ -51,12 +55,12 @@ namespace gamemaster.CommandHandlers
                 }
 
 
-                if (mctx.Type == ChannelType.Group)
+                if (mctx.Type == ChannelType.Group || mctx.Type == ChannelType.Channel)
                 {
                     return await HandleTransferToGroup(fromUser, responseUrl, currency, amount, mctx, rest.Trim());
                 }
 
-                return (false, "Не смогли найти пользователя, которому отправить монеток");
+                return (false, $"Не смогли найти пользователя, которому отправить монеток, {mctx.Type} {mctx.ChannelId}");
             }
 
             return (false,
@@ -70,13 +74,18 @@ namespace gamemaster.CommandHandlers
             var channelUsers = await _slack.GetChannelMembers(channel);
             var allUsers = await _slack.GetUserListAsync();
             channelUsers = FilterBots(channelUsers, allUsers);
-            if (channelUsers == null && channel.Type == ChannelType.Group)
+            if (channelUsers == null)
             {
                 return (false,
                     "Если хочешь, чтоб я раскидал монеты по пользователям закрытого канала - добавь туда этого бота");
             }
+            foreach (var user in channelUsers)
+            {
+                _logger.LogInformation($"ttg, {user}");
+            }
 
-            if (channelUsers != null && channelUsers.Length > 1)
+
+            if (channelUsers.Length > 1)
             {
                 _router.LedgerGiveAway(new GiveAwayMessage(fromUser, currency, responseUrl, amount, channelUsers,
                     channel,

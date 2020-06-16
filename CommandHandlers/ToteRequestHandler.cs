@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using gamemaster.Actors;
 using gamemaster.Config;
+using gamemaster.Messages;
 using gamemaster.Models;
 using gamemaster.Services;
 using Microsoft.Extensions.Options;
@@ -20,6 +21,7 @@ namespace gamemaster.CommandHandlers
         private readonly MessageRouter _router;
         private readonly SlackResponseService _slackResponse;
         private readonly StartToteCommand _startTote;
+        private readonly SlackApiWrapper _slack;
 
         public ToteRequestHandler(IOptions<SlackConfig> cfg,
             SlackResponseService slackResponse,
@@ -28,7 +30,7 @@ namespace gamemaster.CommandHandlers
             AddToteOptionCommand addToteOption,
             StartToteCommand startTote,
             RemoveToteOptionCommand removeToteOption, CancelToteCommand cancelTote,
-            MessageRouter router)
+            MessageRouter router, SlackApiWrapper slack)
         {
             _cfg = cfg;
             _slackResponse = slackResponse;
@@ -39,6 +41,7 @@ namespace gamemaster.CommandHandlers
             _removeToteOption = removeToteOption;
             _cancelTote = cancelTote;
             _router = router;
+            _slack = slack;
         }
 
 
@@ -57,7 +60,7 @@ namespace gamemaster.CommandHandlers
 
             if (string.IsNullOrEmpty(text))
             {
-                return await HandleToteReport(user, responseUrl);
+                return await HandleToteReport(user, context, responseUrl);
             }
 
             if (text.StartsWith("add"))
@@ -111,7 +114,7 @@ namespace gamemaster.CommandHandlers
                 return (false, "Завершить можно только свой тотализатор");
             }
 
-            _router.ToSlackGateway(new BlocksMessage(LongMessagesToUser.ToteFinishButtons(tote), user));
+            await _slack.PostAsync(new BlocksMessage(LongMessagesToUser.ToteFinishButtons(tote), user));
             return (true, "Отправляем меню для выбора победителя");
         }
 
@@ -195,7 +198,7 @@ namespace gamemaster.CommandHandlers
             }
 
             var newTote = await _createNewTote.CreateNewAsync(user, currency, rest);
-            var response = LongMessagesToUser.ToteDetails(newTote, user);
+            var response = LongMessagesToUser.ToteDetails(newTote);
             await _slackResponse.ResponseWithBlocks(responseUrl, response, true);
             return (true, string.Empty);
         }
@@ -206,7 +209,8 @@ namespace gamemaster.CommandHandlers
             return (true, helpResponse);
         }
 
-        private async Task<(bool success, string reason)> HandleToteReport(string user, string responseUrl)
+        private async Task<(bool success, string reason)> HandleToteReport(string user, MessageContext context,
+            string responseUrl)
         {
             var tote = await _getCurrentTote.GetAsync(user);
             if (tote == null)
@@ -214,8 +218,15 @@ namespace gamemaster.CommandHandlers
                 return HandleToteHelp();
             }
 
-            var response = LongMessagesToUser.ToteDetails(tote, user);
-            await _slackResponse.ResponseWithBlocks(responseUrl, response, true);
+            if (context.Type == ChannelType.Direct)
+            {
+                await _slackResponse.ResponseWithBlocks(responseUrl, LongMessagesToUser.ToteDetails(tote), true);
+            }
+            else
+            {
+                _router.ToteStatus(new ToteStatusMessage(context, tote));
+            }
+
             return (true, string.Empty);
         }
 
@@ -237,7 +248,7 @@ namespace gamemaster.CommandHandlers
                 }
 
                 var ret = await _addToteOption.AddAsync(tote, option);
-                var response = LongMessagesToUser.ToteDetails(ret, user);
+                var response = LongMessagesToUser.ToteDetails(ret);
                 await _slackResponse.ResponseWithBlocks(responseUrl, response, true);
                 return (true, string.Empty);
             }
@@ -258,7 +269,7 @@ namespace gamemaster.CommandHandlers
                 }
 
                 var ret = await _removeToteOption.RemoveAsync(tote, option);
-                var response = LongMessagesToUser.ToteDetails(ret, user);
+                var response = LongMessagesToUser.ToteDetails(ret);
                 await _slackResponse.ResponseWithBlocks(responseUrl, response, true);
                 return (true, string.Empty);
             }

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
+using gamemaster.Actors;
 using gamemaster.CommandHandlers;
 using gamemaster.Config;
 using gamemaster.Extensions;
@@ -29,6 +30,7 @@ namespace gamemaster
         private readonly SlackRequestSignature _slackSignature;
         private readonly TossACoinHandler _tossHandler;
         private readonly ToteRequestHandler _toteHandler;
+        private readonly SlackApiWrapper _slack;
 
         public JsonApiMiddleware(RequestDelegate _,
             IOptions<SlackConfig> cfg,
@@ -39,7 +41,7 @@ namespace gamemaster
             BalanceRequestHandler balanceHandler,
             TossACoinHandler tossHandler,
             ToteRequestHandler toteHandler,
-            PlaceBetInteractionHandler placeBetHandler)
+            PlaceBetInteractionHandler placeBetHandler, SlackApiWrapper slack)
         {
             _cfg = cfg;
             _emissionHandler = emissionHandler;
@@ -50,6 +52,7 @@ namespace gamemaster
             _tossHandler = tossHandler;
             _toteHandler = toteHandler;
             _placeBetHandler = placeBetHandler;
+            _slack = slack;
         }
 
         public async Task Invoke(HttpContext context)
@@ -58,16 +61,16 @@ namespace gamemaster
             {
                 var request = context.Request;
                 request.EnableBuffering();
+                var bodyAsText = await ReadRequestAsString(request);
+                var mediaType = GetMediaType(request);
+                _logger.LogInformation("mime={MediaType}, body={Body}", mediaType, bodyAsText);
                 if (request.Headers.TryGetValue("X-Slack-Request-Timestamp", out var timestamp))
                 {
                     if (request.Headers.TryGetValue("X-Slack-Signature", out var signature))
                     {
-                        var bodyAsText = await ReadRequestAsString(request);
                         var keyValid = _slackSignature.Validate(bodyAsText, timestamp, signature);
                         if (keyValid)
                         {
-                            _logger.LogInformation("{Body}", bodyAsText);
-                            var mediaType = GetMediaType(request);
                             if (mediaType == "application/json")
                             {
                                 var rq = JObject.Parse(bodyAsText);
@@ -83,6 +86,7 @@ namespace gamemaster
                                     var e = rq["event"];
                                     if (e?["type"]?.ToString() == "message")
                                     {
+                                        _logger.LogInformation(rq.ToString(Formatting.Indented));
                                         if (e?["bot_id"]?.ToString() == null)
                                         {
                                             var user = e["user"];
@@ -99,7 +103,7 @@ namespace gamemaster
                                 var uri = request.Path;
                                 if (rq["type"]?.ToString() == "event_callback")
                                 {
-                                    await HandleEvent(context.Response, rq);
+                                    await HandleEventAsync(context.Response, rq);
                                 }
                             }
                             else if (mediaType == "application/x-www-form-urlencoded")
@@ -119,7 +123,8 @@ namespace gamemaster
                                 else if (parts.TryGetValue("payload", out var payload))
                                 {
                                     var pl = DeserializePayload(payload);
-                                    await HandleInteractionAsync(pl);
+                                    _logger.LogInformation("Got pl={Payload}", JsonConvert.SerializeObject(pl));
+                                    HandleInteraction(pl);
                                     context.Response.StatusCode = 200;
                                     await context.Response.WriteAsync("еуые");
                                 }
@@ -134,7 +139,7 @@ namespace gamemaster
             }
         }
 
-        private async Task HandleInteractionAsync(SlackInteractionPayload pl)
+        private void HandleInteraction(SlackInteractionPayload pl)
         {
             if (pl.Actions.Count > 0)
             {
@@ -229,7 +234,7 @@ namespace gamemaster
             return bodyAsText;
         }
 
-        private Task HandleEvent(HttpResponse resp, JObject rq)
+        private async Task HandleEventAsync(HttpResponse resp, JObject rq)
         {
             var @event = rq["event"];
             if (@event?["type"]?.ToString() == "message")
@@ -238,15 +243,13 @@ namespace gamemaster
                 var clientMsgId = @event["client_msg_id"]?.ToString();
                 if (!string.IsNullOrEmpty(botId) && string.IsNullOrEmpty(clientMsgId))
                 {
-                    return Task.CompletedTask; // quick and dirty: ignore self (message loop)
+                    return; // quick and dirty: ignore self (message loop)
                 }
 
                 var txt = @event["text"]?.ToString();
                 var author = @event["user"]?.ToString();
-                _router.ToSlackGateway(new MessageToChannel(author, $"echo {txt}"));
+                await _slack.PostAsync(new MessageToChannel(author, $"echo {txt}"));
             }
-
-            return Task.CompletedTask;
         }
 
         private MessageContext GetMessageContext(Dictionary<string, string> parts)

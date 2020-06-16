@@ -13,7 +13,6 @@ namespace gamemaster
         private readonly ILogger<MessageRouter> _logger;
         private ActorSystem _as;
         private IActorRef _ledger;
-        private IActorRef _slackGateway;
         private IActorRef _userContexts;
 
         public MessageRouter(ILogger<MessageRouter> logger)
@@ -21,19 +20,10 @@ namespace gamemaster
             _logger = logger;
         }
 
-        public void ToSlackGateway<T>(T message)
-        {
-            _slackGateway.Tell(message, Nobody.Instance);
-        }
-
+    
         public void RegisterSystem(ActorSystem sys)
         {
             _as = sys;
-        }
-
-        public void RegisterSlackGateway(IActorRef self)
-        {
-            _slackGateway = self;
         }
 
 
@@ -60,23 +50,6 @@ namespace gamemaster
             _ledger.Tell(msg);
         }
 
-        public async Task<TResp> RpcToSlack<TQuery, TResp>(TQuery msg) where TResp : class
-        {
-            var inbox = Inbox.Create(_as);
-            inbox.Send(_slackGateway, msg);
-
-            try
-            {
-                var ret = await inbox.ReceiveAsync(TimeSpan.FromSeconds(2));
-                return ret as TResp;
-            }
-            catch (TimeoutException)
-            {
-                _logger.LogError("Slack RPC timeout {Message}", msg);
-            }
-
-            return null;
-        }
 
         public void LedgerGiveAway(GiveAwayMessage msg)
         {
@@ -95,6 +68,10 @@ namespace gamemaster
 
         public void LedgerPlaceBet(TotePlaceBetMessage msg)
         {
+            if (_ledger.IsNobody())
+            {
+                _logger.LogError("Ledger ref missing");
+            }
             _ledger.Tell(msg);
         }
 
@@ -116,6 +93,11 @@ namespace gamemaster
         public void BetInfo(PlaceBetMessage msg)
         {
             _userContexts.Tell(msg);
+        }
+
+        public void ToteStatus(ToteStatusMessage msg)
+        {
+            _ledger.Tell(msg);
         }
     }
 }

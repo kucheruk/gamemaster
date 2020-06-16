@@ -45,7 +45,11 @@ tote todo
 
 - [ ] auto cancel tote after 1 week, return funds, ban user who created tote
 
+- [ ] tote finish prints winners and loosers and all amounts to chat
+
 - [ ] single /tote command with interactive buttons for all actions
+
+- [ ] Akka Persistence for tote instance 
 
 - [ ] inplace updates for tote report block
 

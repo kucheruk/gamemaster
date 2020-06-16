@@ -2,7 +2,7 @@ using SlackAPI;
 
 namespace gamemaster.Actors
 {
-    internal class BlocksMessage
+    public class BlocksMessage
     {
         public BlocksMessage(IBlock[] blocks, string channelId)
         {

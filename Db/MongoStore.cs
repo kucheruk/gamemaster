@@ -23,6 +23,7 @@ namespace gamemaster.Db
             Ops = GetCollection<OperationDescription>("ops");
             Players = GetCollection<Player>("players");
             Totes = GetCollection<Tote>("totes");
+            ToteReports = GetCollection<ToteReport>("toteReports");
             App = GetCollection<AppState>("appState");
         }
 
@@ -34,6 +35,7 @@ namespace gamemaster.Db
         public IMongoCollection<AppState> App { get; set; }
         public IMongoCollection<Player> Players { get; set; }
         public IMongoCollection<Tote> Totes { get; set; }
+        public IMongoCollection<ToteReport> ToteReports { get; set; }
         public IMongoCollection<SlackInteractionAction> Bright { get; set; }
 
         private IMongoCollection<T> GetCollection<T>(string col)
