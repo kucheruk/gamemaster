@@ -70,6 +70,7 @@ namespace gamemaster.Extensions
             {
                 if (decimal.TryParse(msg.Text, out var amount))
                 {
+                    amount = decimal.Round(amount, 2);
                     _router.LedgerPlaceBet(new TotePlaceBetMessage(_user, _tote, _option.Id,  amount));
                     Self.GracefulStop(TimeSpan.FromMilliseconds(10));
                 }

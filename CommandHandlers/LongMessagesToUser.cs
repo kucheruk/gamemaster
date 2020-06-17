@@ -123,19 +123,27 @@ namespace gamemaster.CommandHandlers
             var participantsCount = allBets.Select(a => a.User).Distinct().Count();
             var betsCount = allBets.Count;
 
-            sb.AppendLine("Детали о текущем тотализаторе")
-                .Append("Статус: ")
+            var totalSum = allBets?.Sum(a => a.Amount);
+            var total = decimal.Round(totalSum.GetValueOrDefault(), 2);
+            sb
+                .AppendLine($"==ТОТАЛИЗАТОР *{tote.Description}* ==")
                 .AppendLine(ToteStatus(tote))
-                .AppendLine($"Участников: {participantsCount}")
-                .AppendLine($"Ставок: {betsCount}")
-                .AppendLine($"Всего поставлено: {allBets?.Sum(a => a.Amount)} {tote.Currency}")
-                .AppendLine($"==ТОТАЛИЗАТОР *{tote.Description}* ==");
+                .Append($"{participantsCount} {ParticipantsDecl(participantsCount)}, ")
+                .AppendLine($"{betsCount} {Declination(betsCount, "ставка", "ставки", "ставок")}")
+                .AppendLine();
             foreach (var option in tote.Options)
             {
                 AddToteOption(option, tote, sb);
             }
 
-            sb.AppendLine();
+            sb
+                .AppendLine($"Всего поставлено: {total} {tote.Currency}")
+                .AppendLine();
+        }
+
+        private static string ParticipantsDecl(int participantsCount)
+        {
+            return $"{Declination(participantsCount, "участника", "участников", "участников")}";
         }
 
         private static void AddToteOption(ToteOption option, Tote tote,
@@ -143,11 +151,13 @@ namespace gamemaster.CommandHandlers
         {
             var participantsCount = option.Bets.Select(a => a.User).Distinct().Count();
             sb.Append(
-                $"[{option.Number}] *{option.Name}* ");
+                $"*{option.Name}* ");
             if (participantsCount > 0)
             {
+                var sum = option.Bets.Sum(a => a.Amount);
+                sum = Decimal.Round(sum, 2);
                 sb.Append(
-                    $"сделано ставок на {option.Bets.Sum(a => a.Amount)} {tote.Currency} от {participantsCount} {Declination(participantsCount, "участника", "участников", "участников")}");
+                    $"сделано ставок на {sum} {tote.Currency} от {participantsCount} {ParticipantsDecl(participantsCount)}");
             }
 
             sb.AppendLine();
@@ -171,7 +181,7 @@ namespace gamemaster.CommandHandlers
                 case ToteState.Finished:
                     return "Завершён";
                 case ToteState.Started:
-                    return "Принимаем ставки";
+                    return "Открыт приём ставок!";
             }
 
             return "Ошибка, да";

@@ -43,6 +43,8 @@ tote todo
 
 - [x] if amount is ok, transfer coins to tote account
 
+- [x] trim bets to .xx decimals
+ 
 - [ ] auto cancel tote after 1 week, return funds, ban user who created tote
 
 - [ ] tote finish prints winners and loosers and all amounts to chat
