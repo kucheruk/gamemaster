@@ -10,6 +10,7 @@ using gamemaster.CommandHandlers;
 using gamemaster.Config;
 using gamemaster.Extensions;
 using gamemaster.Messages;
+using gamemaster.Slack;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace gamemaster
+namespace gamemaster.Slack
 {
     public class SlackInteractionUser
     {

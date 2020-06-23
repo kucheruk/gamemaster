@@ -3,6 +3,7 @@ using gamemaster.Actors;
 using gamemaster.Commands;
 using gamemaster.Messages;
 using gamemaster.Models;
+using gamemaster.Slack;
 
 namespace gamemaster.CommandHandlers
 {

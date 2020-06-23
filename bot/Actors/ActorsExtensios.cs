@@ -1,10 +1,9 @@
-using gamemaster.Actors;
 using gamemaster.Extensions;
 using gamemaster.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace gamemaster
+namespace gamemaster.Actors
 {
     public static class ActorsExtensios
     {

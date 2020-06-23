@@ -1,6 +1,7 @@
 using gamemaster.Actors;
 using gamemaster.CommandHandlers;
 using gamemaster.Services;
+using gamemaster.Slack;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace gamemaster.Extensions

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using gamemaster.Actors;
 using gamemaster.Messages;
+using gamemaster.Slack;
 using Microsoft.Extensions.Logging;
 using SlackAPI;
 

@@ -3,6 +3,7 @@ using Akka.Actor;
 using gamemaster.CommandHandlers;
 using gamemaster.Messages;
 using gamemaster.Queries;
+using gamemaster.Slack;
 using Microsoft.Extensions.Logging;
 
 namespace gamemaster.Actors

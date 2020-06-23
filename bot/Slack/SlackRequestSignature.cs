@@ -5,7 +5,7 @@ using gamemaster.Config;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 
-namespace gamemaster
+namespace gamemaster.Slack
 {
     public class SlackRequestSignature
     {

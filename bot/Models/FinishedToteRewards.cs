@@ -1,6 +1,4 @@
-using gamemaster.Models;
-
-namespace gamemaster.Queries
+namespace gamemaster.Models
 {
     public class FinishedToteRewards
     {

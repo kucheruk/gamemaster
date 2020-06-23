@@ -5,6 +5,7 @@ using Akka.DI.Core;
 using Akka.Event;
 using gamemaster.Actors;
 using gamemaster.Messages;
+using gamemaster.Slack;
 using Microsoft.Extensions.Logging;
 
 namespace gamemaster.Extensions

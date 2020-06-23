@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace gamemaster.Controllers
+namespace gamemaster.Slack
 {
     public class SlackEventApiEvent
     {

@@ -1,4 +1,4 @@
-namespace gamemaster
+namespace gamemaster.Messages
 {
     public class ToteCancelledMessage
     {

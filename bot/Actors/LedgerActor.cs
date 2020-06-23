@@ -10,6 +10,7 @@ using gamemaster.Messages;
 using gamemaster.Models;
 using gamemaster.Queries;
 using gamemaster.Services;
+using gamemaster.Slack;
 using Microsoft.Extensions.Logging;
 
 namespace gamemaster.Actors

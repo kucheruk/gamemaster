@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using gamemaster.Config;
 using gamemaster.Models;
+using gamemaster.Slack;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Action = gamemaster.Models.Action;
