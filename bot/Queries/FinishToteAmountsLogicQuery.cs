@@ -1,5 +1,4 @@
 using System.Linq;
-using System.Threading.Tasks;
 using gamemaster.Extensions;
 using gamemaster.Models;
 
@@ -7,7 +6,7 @@ namespace gamemaster.Queries
 {
     public class FinishToteAmountsLogicQuery
     {
-        public async Task<FinishedToteRewards> CalcRewards(Tote tote, string winningOptionId)
+        public FinishedToteRewards CalcRewards(Tote tote, string winningOptionId)
         {
             var bets = tote.Options.SelectMany(a => a.Bets);
             var totalSum = bets.Sum(a => a.Amount);

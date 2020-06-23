@@ -79,7 +79,7 @@ namespace gamemaster.Actors
             }
 
             await _finishTote.FinishAsync(tote.Id);
-            var rewards = await _rewardsLogic.CalcRewards(tote, msg.OptionId);
+            var rewards = _rewardsLogic.CalcRewards(tote, msg.OptionId);
             foreach (var reward in rewards.ProportionalReward)
             {
                 Self.Tell(new ValidatedTransferMessage(tote.AccountId(), reward.Account.UserId, reward.Amount,

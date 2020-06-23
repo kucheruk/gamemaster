@@ -107,13 +107,13 @@ namespace gamemaster.Slack
                 {
                     return DeserializeFromStream<T>(stream);
                 }
-                catch (JsonSerializationException ex)
+                catch (JsonSerializationException)
                 {
-                    return default(T);
+                    return default;
                 }
-                catch (JsonReaderException ex)
+                catch (JsonReaderException)
                 {
-                    return default(T);
+                    return default;
                 }
             }
 
