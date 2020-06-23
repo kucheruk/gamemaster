@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Akka.Actor;
 using gamemaster.CommandHandlers;
+using gamemaster.Commands;
 using gamemaster.Messages;
 using gamemaster.Models;
 using gamemaster.Queries;

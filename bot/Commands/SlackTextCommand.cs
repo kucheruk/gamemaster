@@ -1,4 +1,4 @@
-namespace gamemaster.CommandHandlers
+namespace gamemaster.Commands
 {
     public class SlackTextCommand
     {

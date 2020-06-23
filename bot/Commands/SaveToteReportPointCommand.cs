@@ -1,7 +1,8 @@
 using System.Threading.Tasks;
 using gamemaster.Db;
+using gamemaster.Queries;
 
-namespace gamemaster.CommandHandlers
+namespace gamemaster.Commands
 {
     public class SaveToteReportPointCommand
     {

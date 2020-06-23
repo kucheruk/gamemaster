@@ -4,7 +4,7 @@ using gamemaster.Db;
 using gamemaster.Models;
 using MongoDB.Driver;
 
-namespace gamemaster.CommandHandlers
+namespace gamemaster.Commands
 {
     public class StartToteCommand
     {

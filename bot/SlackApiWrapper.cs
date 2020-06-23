@@ -13,7 +13,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using SlackAPI;
 
-namespace gamemaster.Actors
+namespace gamemaster
 {
     public class SlackApiWrapper
     {

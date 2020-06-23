@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Akka.Actor;
 using gamemaster.CommandHandlers;
 using gamemaster.Messages;
+using gamemaster.Queries;
 using Microsoft.Extensions.Logging;
 
 namespace gamemaster.Actors

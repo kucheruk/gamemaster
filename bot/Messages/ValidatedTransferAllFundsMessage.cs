@@ -1,4 +1,4 @@
-namespace gamemaster.Actors
+namespace gamemaster.Messages
 {
     public class ValidatedTransferAllFundsMessage
     {

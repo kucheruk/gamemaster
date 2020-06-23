@@ -1,6 +1,6 @@
 using gamemaster.Models;
 
-namespace gamemaster.Actors
+namespace gamemaster.Queries
 {
     public class FinishedToteRewards
     {

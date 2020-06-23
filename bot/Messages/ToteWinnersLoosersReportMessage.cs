@@ -1,6 +1,7 @@
 using gamemaster.Models;
+using gamemaster.Queries;
 
-namespace gamemaster.Actors
+namespace gamemaster.Messages
 {
     public class ToteWinnersLoosersReportMessage
     {

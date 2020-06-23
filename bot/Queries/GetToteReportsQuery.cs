@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using gamemaster.Db;
 using MongoDB.Driver;
 
-namespace gamemaster.Actors
+namespace gamemaster.Queries
 {
     public class GetToteReportsQuery
     {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using gamemaster.Actors;
+using gamemaster.Messages;
 using gamemaster.Models;
 using SlackAPI;
 

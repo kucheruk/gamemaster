@@ -1,6 +1,6 @@
 using SlackAPI;
 
-namespace gamemaster.Actors
+namespace gamemaster.Messages
 {
     public class BlocksMessage
     {

@@ -2,7 +2,7 @@ using System.Threading.Tasks;
 using gamemaster.Db;
 using MongoDB.Driver;
 
-namespace gamemaster.CommandHandlers
+namespace gamemaster.Queries
 {
     public class ToteReportCountQuery
     {
