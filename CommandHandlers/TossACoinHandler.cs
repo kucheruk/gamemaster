@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -27,49 +26,40 @@ namespace gamemaster.CommandHandlers
         public async Task<(bool success, string reason)> HandleTossAsync(string fromUser, string text,
             string responseUrl, MessageContext mctx)
         {
-            var parts = text.Split(' ');
-            if (parts.Length > 1)
+            TossRequestParams p = TossRequestParams.FromText(text);
+            if (p == null)
             {
-                var currency = CommandsPartsParse.FindCurrency(parts, Constants.DefaultCurrency);
-                if (string.IsNullOrEmpty(currency))
-                {
-                    return (false, "Не смогли определить какие именно монетки переводить");
-                }
+                return (false,
+                    $"Не смогли найти пользователя, которому отправить монеток, {mctx.Type} {mctx.ChannelId}");
 
-                var (amountstr, amount) = CommandsPartsParse.FindDecimal(parts, 0);
-                if (amount <= 0)
-                {
-                    return (false, "Не смогли найти в команде сколько монет переводим");
-                }
-
-                var rest = text.Remove(text.IndexOf(currency, StringComparison.OrdinalIgnoreCase), currency.Length);
-                rest = rest.Remove(rest.IndexOf(amountstr, StringComparison.OrdinalIgnoreCase), amountstr.Length);
-
-                var userId = CommandsPartsParse.FindUserId(parts);
-                if (userId.HasValue)
-                {
-                    rest = rest.Remove(rest.IndexOf(userId.Value.part, StringComparison.OrdinalIgnoreCase),
-                        userId.Value.part.Length);
-
-                    return HandleTransferToSingleUser(fromUser, responseUrl, currency, amount, userId, rest.Trim());
-                }
-
-
-                if (mctx.Type == ChannelType.Group || mctx.Type == ChannelType.Channel)
-                {
-                    return await HandleTransferToGroup(fromUser, responseUrl, currency, amount, mctx, rest.Trim());
-                }
-
-                return (false, $"Не смогли найти пользователя, которому отправить монеток, {mctx.Type} {mctx.ChannelId}");
             }
 
-            return (false,
-                "Неверный формат запроса. Формат: `/toss @кому сколько чего` Пример: `/toss @kucheruk 300 :coin:`");
-        }
+            if (string.IsNullOrEmpty(p.Currency))
+            {
+                return (false, "Не смогли определить какие именно монетки переводить");
+            }
 
+            if (p.Amount <= 0)
+            {
+                return (false, "Не смогли найти в команде сколько монет переводим");
+            }
+
+            if (!string.IsNullOrEmpty(p.UserId))
+            {
+                return HandleTransferToSingleUser(fromUser, responseUrl, p);
+            }
+
+
+            if (mctx.Type == ChannelType.Group || mctx.Type == ChannelType.Channel)
+            {
+                return await HandleTransferToGroup(fromUser, responseUrl, mctx, p);
+            }
+
+            return (false, "И пользователь не указан, и команда не внутри канала... Как-то неочевидно, чего делать").
+        }
+        
         private async Task<(bool success, string reason)> HandleTransferToGroup(string fromUser, string responseUrl,
-            string currency, decimal amount,
-            MessageContext channel, string comment)
+            MessageContext channel, TossRequestParams p)
         {
             var channelUsers = await _slack.GetChannelMembers(channel);
             var allUsers = await _slack.GetUserListAsync();
@@ -79,17 +69,16 @@ namespace gamemaster.CommandHandlers
                 return (false,
                     "Если хочешь, чтоб я раскидал монеты по пользователям закрытого канала - добавь туда этого бота");
             }
+
             foreach (var user in channelUsers)
             {
                 _logger.LogInformation($"ttg, {user}");
             }
 
-
             if (channelUsers.Length > 1)
             {
-                _router.LedgerGiveAway(new GiveAwayMessage(fromUser, currency, responseUrl, amount, channelUsers,
-                    channel,
-                    comment));
+                var msg = new GiveAwayMessage(fromUser, p.Currency, responseUrl, p.Amount, channelUsers, channel, p.Comment);
+                _router.LedgerGiveAway(msg);
                 return (true, "Приказали гоблинам раскидать монетки всем пользователям канала...");
             }
 
@@ -102,11 +91,10 @@ namespace gamemaster.CommandHandlers
         }
 
         private (bool success, string reason) HandleTransferToSingleUser(string fromUser, string responseUrl,
-            string currency, decimal amount,
-            (string id, string name)? userId, string comment)
+            TossRequestParams p)
         {
-            _router.LedgerToss(new TossACoinMessage(fromUser, currency, responseUrl, amount,
-                userId.Value.id, comment));
+            _router.LedgerToss(new TossACoinMessage(fromUser, p.Currency, responseUrl, p.Amount,
+                p.UserId, p.Comment));
             return (true, "Запрос на перевод отправлен гоблинам в банк, ожидай ответа");
         }
     }
