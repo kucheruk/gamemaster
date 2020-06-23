@@ -5,7 +5,6 @@ using gamemaster.Models;
 using gamemaster.Slack;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
-using Action = gamemaster.Models.Action;
 
 namespace gamemaster.Db
 {

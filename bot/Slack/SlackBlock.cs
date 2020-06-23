@@ -1,6 +1,6 @@
 using Newtonsoft.Json.Linq;
 
-namespace gamemaster.CommandHandlers
+namespace gamemaster.Slack
 {
     public abstract class SlackBlock
     {

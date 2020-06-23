@@ -1,6 +1,6 @@
 using gamemaster.Actors;
 using gamemaster.Commands;
-using gamemaster.Queries;
+using gamemaster.Queries.Ledger;
 using gamemaster.Services;
 using Microsoft.Extensions.DependencyInjection;
 

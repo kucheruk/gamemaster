@@ -6,7 +6,8 @@ using gamemaster.CommandHandlers;
 using gamemaster.Commands;
 using gamemaster.Messages;
 using gamemaster.Models;
-using gamemaster.Queries;
+using gamemaster.Queries.Ledger;
+using gamemaster.Queries.Tote;
 using gamemaster.Slack;
 using Microsoft.Extensions.Logging;
 
@@ -19,12 +20,10 @@ namespace gamemaster.Actors
         private readonly GetToteByIdQuery _getTote;
         private readonly ILogger<TotesActor> _logger;
         private readonly FinishToteAmountsLogicQuery _rewardsLogic;
-        private readonly MessageRouter _router;
         private readonly SaveToteReportPointCommand _saveToteReportPoint;
         private readonly SlackApiWrapper _slack;
 
         public TotesActor(GetToteByIdQuery getTote,
-            MessageRouter router,
             ILogger<TotesActor> logger,
             FinishToteAmountsLogicQuery rewardsLogic,
             FinishToteCommand finishTote,
@@ -32,7 +31,6 @@ namespace gamemaster.Actors
             SlackApiWrapper slack, SaveToteReportPointCommand saveToteReportPoint)
         {
             _getTote = getTote;
-            _router = router;
             _logger = logger;
             _rewardsLogic = rewardsLogic;
             _finishTote = finishTote;
@@ -90,8 +88,8 @@ namespace gamemaster.Actors
 
             Self.Tell(new ValidatedTransferAllFundsMessage(tote.AccountId(), tote.Owner, tote.Currency,
                 "Ваше вознаграждение за проведённый тотализатор!", $"(Тотализатор *{tote.Description}*)"));
-            _router.Messenger.Tell(new UpdateToteReportsMessage(tote.Id));
-            _router.Messenger.Tell(new ToteWinnersLoosersReportMessage(rewards, tote));
+            MessengerActor.Address.Tell(new UpdateToteReportsMessage(tote.Id));
+            MessengerActor.Address.Tell(new ToteWinnersLoosersReportMessage(rewards, tote));
         }
 
         private async Task HandleToteCancel(ToteCancelledMessage msg)
@@ -104,7 +102,7 @@ namespace gamemaster.Actors
                     "Тотализатор отмененён, возврат ставки", false, $"(Тотализатор *{tote.Description}*)"));
             }
 
-            _router.Messenger.Tell(new UpdateToteReportsMessage(tote.Id));
+            MessengerActor.Address.Tell(new UpdateToteReportsMessage(tote.Id));
         }
 
         private async Task HandlePlaceBet(TotePlaceBetMessage msg)
@@ -138,7 +136,7 @@ namespace gamemaster.Actors
                 "Ставка на тотализатор", true));
             await _slack.PostAsync(new MessageToChannel(msg.User,
                 $"Ваша ставка в количестве {tote.Currency}{msg.Amount} отправлена на счёт тотализатора!"));
-            _router.Messenger.Tell(new UpdateToteReportsMessage(tote.Id));
+            MessengerActor.Address.Tell(new UpdateToteReportsMessage(tote.Id));
         }
     }
 }

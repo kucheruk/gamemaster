@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using gamemaster.Actors;
 using gamemaster.Messages;
 using gamemaster.Models;
 using SlackAPI;
@@ -64,7 +63,7 @@ namespace gamemaster.CommandHandlers
                     "`/tote add Вариант развития событий` - добавляет вариант, на который можно ставить деньги к текущему создаваемому тотализатору");
         }
 
-        public static List<IBlock> ToteDetails(Tote tote, StringBuilder sb = null)
+        public static List<IBlock> ToteDetails(Models.Tote tote, StringBuilder sb = null)
         {
             sb ??= new StringBuilder();
             var desc = GetToteDescriptionMrkdwn(tote, sb);
@@ -101,7 +100,7 @@ namespace gamemaster.CommandHandlers
             return blocks;
         }
 
-        private static StringBuilder GetToteDescriptionMrkdwn(Tote tote, StringBuilder sb)
+        private static StringBuilder GetToteDescriptionMrkdwn(Models.Tote tote, StringBuilder sb)
         {
             AddLongToteDescription(tote, sb);
             if (tote.State == ToteState.Created)
@@ -118,7 +117,7 @@ namespace gamemaster.CommandHandlers
             return sb;
         }
 
-        private static void AddLongToteDescription(Tote tote, StringBuilder sb)
+        private static void AddLongToteDescription(Models.Tote tote, StringBuilder sb)
         {
             var allBets = tote.Options.SelectMany(a => a.Bets).ToList();
             var participantsCount = allBets.Select(a => a.User).Distinct().Count();
@@ -147,7 +146,7 @@ namespace gamemaster.CommandHandlers
             return $"{Declination(participantsCount, "участника", "участников", "участников")}";
         }
 
-        private static void AddToteOption(ToteOption option, Tote tote,
+        private static void AddToteOption(ToteOption option, Models.Tote tote,
             StringBuilder sb)
         {
             var participantsCount = option.Bets.Select(a => a.User).Distinct().Count();
@@ -171,7 +170,7 @@ namespace gamemaster.CommandHandlers
             return titles[a % 100 > 4 && a % 100 < 20 ? 2 : Cases[i]];
         }
 
-        private static string ToteStatus(Tote tote)
+        private static string ToteStatus(Models.Tote tote)
         {
             switch (tote.State)
             {
@@ -188,7 +187,7 @@ namespace gamemaster.CommandHandlers
             return "Ошибка, да";
         }
 
-        public static StringBuilder WelcomeToTote(Tote tote, in decimal balanceAmount)
+        public static StringBuilder WelcomeToTote(Models.Tote tote, in decimal balanceAmount)
         {
             var sb = new StringBuilder();
             sb.AppendLine($"Выбран тотализатор `{tote.Description}`.")
@@ -201,17 +200,17 @@ namespace gamemaster.CommandHandlers
             return sb;
         }
 
-        public static IBlock[] ToteOptionsButtons(Tote toteValue)
+        public static IBlock[] ToteOptionsButtons(Models.Tote toteValue)
         {
             return ToteOptionsWithCta(toteValue, "Выбери вариант, который ты считаешь выигрышным", "option_select");
         }
 
-        public static IBlock[] ToteFinishButtons(Tote toteValue)
+        public static IBlock[] ToteFinishButtons(Models.Tote toteValue)
         {
             return ToteOptionsWithCta(toteValue, "Который вариант выиграл?", "finish_tote");
         }
 
-        private static IBlock[] ToteOptionsWithCta(Tote toteValue, string cta,
+        private static IBlock[] ToteOptionsWithCta(Models.Tote toteValue, string cta,
             string actionIdKey)
         {
             var blocks = new List<IBlock>();
@@ -244,7 +243,7 @@ namespace gamemaster.CommandHandlers
             return blocks.ToArray();
         }
 
-        public static string ToteWinners(Tote tote, ToteWinnersLoosersReportMessage msg)
+        public static string ToteWinners(Models.Tote tote, ToteWinnersLoosersReportMessage msg)
         {
             var sb = new StringBuilder();
             sb.AppendLine($"Тотализатор *{tote.Description}* завершён!");

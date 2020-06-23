@@ -5,7 +5,7 @@ using gamemaster.Extensions;
 using gamemaster.Models;
 using MongoDB.Driver;
 
-namespace gamemaster.Queries
+namespace gamemaster.Queries.Ledger
 {
     public class GetUserBalanceQuery
     {

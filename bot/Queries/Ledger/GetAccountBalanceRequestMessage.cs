@@ -1,4 +1,4 @@
-namespace gamemaster.Queries
+namespace gamemaster.Queries.Ledger
 {
     public class GetAccountBalanceRequestMessage
     {

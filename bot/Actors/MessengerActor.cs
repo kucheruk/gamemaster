@@ -2,7 +2,7 @@ using System.Threading.Tasks;
 using Akka.Actor;
 using gamemaster.CommandHandlers;
 using gamemaster.Messages;
-using gamemaster.Queries;
+using gamemaster.Queries.Tote;
 using gamemaster.Slack;
 using Microsoft.Extensions.Logging;
 
@@ -55,9 +55,11 @@ namespace gamemaster.Actors
             }
         }
         
+        public static IActorRef Address { get; private set; }
+        
         protected override void PreStart()
         {
-            _router.RegisterMessenger(Self);
+            Address = Self;
             _logger.LogInformation("LEDGER STARTED");
 
             base.PreStart();

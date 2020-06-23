@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using gamemaster.Commands;
-using gamemaster.Queries;
+using gamemaster.Queries.Ledger;
 
 namespace gamemaster.Services
 {

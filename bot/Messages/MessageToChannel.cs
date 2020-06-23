@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace gamemaster.Messages
 {
     public class MessageToChannel

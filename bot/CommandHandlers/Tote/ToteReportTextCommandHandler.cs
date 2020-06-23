@@ -3,9 +3,10 @@ using Akka.Actor;
 using gamemaster.Actors;
 using gamemaster.Commands;
 using gamemaster.Messages;
+using gamemaster.Queries.Tote;
 using gamemaster.Services;
 
-namespace gamemaster.CommandHandlers
+namespace gamemaster.CommandHandlers.Tote
 {
     public class ToteReportTextCommandHandler : ITextCommandHandler
     {

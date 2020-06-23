@@ -1,9 +1,8 @@
 using System.Threading.Tasks;
 using gamemaster.Db;
-using gamemaster.Models;
 using MongoDB.Driver;
 
-namespace gamemaster.Queries
+namespace gamemaster.Queries.Tote
 {
     public class GetToteByIdQuery
     {
@@ -14,7 +13,7 @@ namespace gamemaster.Queries
             _ms = ms;
         }
 
-        public async Task<Tote> GetAsync(string id)
+        public async Task<Models.Tote> GetAsync(string id)
         {
             var tote = await _ms.Totes
                 .Find(a => a.Id == id)

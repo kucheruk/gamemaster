@@ -1,7 +1,5 @@
-using System;
-using System.Threading.Tasks;
 using Akka.Actor;
-using gamemaster.CommandHandlers;
+using gamemaster.CommandHandlers.Ledger;
 using gamemaster.Extensions;
 using gamemaster.Messages;
 using Microsoft.Extensions.Logging;
@@ -14,7 +12,6 @@ namespace gamemaster
         private ActorSystem _as;
         private IActorRef _ledger;
         private IActorRef _userContexts;
-        public IActorRef Messenger { get; private set; }
 
         public MessageRouter(ILogger<MessageRouter> logger)
         {
@@ -28,11 +25,6 @@ namespace gamemaster
         }
 
 
-        public void RegisterMessenger(IActorRef aref)
-        {
-            Messenger = aref;
-        }
-        
         public void RegisterLedger(IActorRef aref)
         {
             _ledger = aref;

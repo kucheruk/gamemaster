@@ -1,6 +1,6 @@
 using gamemaster.Models;
 
-namespace gamemaster.CommandHandlers
+namespace gamemaster.Messages
 {
     public class ToteStatusMessage
     {

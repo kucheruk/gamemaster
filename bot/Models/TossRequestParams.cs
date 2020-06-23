@@ -1,6 +1,7 @@
 using System.Linq;
+using gamemaster.CommandHandlers;
 
-namespace gamemaster.CommandHandlers
+namespace gamemaster.Models
 {
     public class TossRequestParams
     {

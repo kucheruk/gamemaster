@@ -2,7 +2,7 @@ using gamemaster.Config;
 using gamemaster.Messages;
 using Microsoft.Extensions.Options;
 
-namespace gamemaster.CommandHandlers
+namespace gamemaster.CommandHandlers.Ledger
 {
     public class BalanceRequestHandler
     {

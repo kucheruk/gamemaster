@@ -3,7 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using gamemaster.Db;
 using gamemaster.Models;
-using gamemaster.Queries;
+using gamemaster.Queries.Tote;
 using MongoDB.Bson;
 using MongoDB.Driver;
 

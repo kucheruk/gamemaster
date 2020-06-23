@@ -1,13 +1,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using gamemaster.Actors;
 using gamemaster.Messages;
+using gamemaster.Models;
 using gamemaster.Slack;
 using Microsoft.Extensions.Logging;
 using SlackAPI;
 
-namespace gamemaster.CommandHandlers
+namespace gamemaster.CommandHandlers.Ledger
 {
     public class TossACoinHandler
     {

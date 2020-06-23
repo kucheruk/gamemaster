@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 using gamemaster.Db;
-using gamemaster.Queries;
+using gamemaster.Queries.Tote;
 
 namespace gamemaster.Commands
 {

@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace gamemaster.Queries
+namespace gamemaster.Queries.Ledger
 {
     public class GetCurrentPeriodQuery
     {

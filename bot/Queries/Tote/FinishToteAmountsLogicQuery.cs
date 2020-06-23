@@ -2,11 +2,11 @@ using System.Linq;
 using gamemaster.Extensions;
 using gamemaster.Models;
 
-namespace gamemaster.Queries
+namespace gamemaster.Queries.Tote
 {
     public class FinishToteAmountsLogicQuery
     {
-        public FinishedToteRewards CalcRewards(Tote tote, string winningOptionId)
+        public FinishedToteRewards CalcRewards(Models.Tote tote, string winningOptionId)
         {
             var bets = tote.Options.SelectMany(a => a.Bets);
             var totalSum = bets.Sum(a => a.Amount);

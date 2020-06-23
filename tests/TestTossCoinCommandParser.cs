@@ -1,4 +1,4 @@
-using gamemaster.CommandHandlers;
+using gamemaster.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace tests

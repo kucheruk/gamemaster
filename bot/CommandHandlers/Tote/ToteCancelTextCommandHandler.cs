@@ -4,8 +4,9 @@ using gamemaster.Actors;
 using gamemaster.Commands;
 using gamemaster.Messages;
 using gamemaster.Models;
+using gamemaster.Queries.Tote;
 
-namespace gamemaster.CommandHandlers
+namespace gamemaster.CommandHandlers.Tote
 {
     public class ToteCancelTextCommandHandler : ITextCommandHandler
     {

@@ -1,5 +1,4 @@
 using gamemaster.Models;
-using gamemaster.Queries;
 
 namespace gamemaster.Messages
 {

@@ -1,7 +1,7 @@
 using gamemaster.Config;
 using Microsoft.Extensions.Options;
 
-namespace gamemaster.CommandHandlers
+namespace gamemaster.CommandHandlers.Ledger
 {
     public class EmissionRequestHandler
     {

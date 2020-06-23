@@ -1,4 +1,4 @@
-namespace gamemaster.CommandHandlers
+namespace gamemaster.CommandHandlers.Ledger
 {
     public class GiveAwayMessage
     {

@@ -3,9 +3,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using gamemaster.Commands;
 using gamemaster.Models;
+using gamemaster.Queries.Tote;
 using gamemaster.Services;
 
-namespace gamemaster.CommandHandlers
+namespace gamemaster.CommandHandlers.Tote
 {
     public class ToteAddOptionTextCommandHandler : ITextCommandHandler
     {

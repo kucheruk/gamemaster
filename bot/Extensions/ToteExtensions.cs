@@ -1,7 +1,7 @@
-using gamemaster.Actors;
 using gamemaster.CommandHandlers;
+using gamemaster.CommandHandlers.Tote;
 using gamemaster.Commands;
-using gamemaster.Queries;
+using gamemaster.Queries.Tote;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace gamemaster.Extensions

@@ -1,11 +1,11 @@
 using System.Threading.Tasks;
-using gamemaster.Actors;
 using gamemaster.Commands;
 using gamemaster.Messages;
 using gamemaster.Models;
+using gamemaster.Queries.Tote;
 using gamemaster.Slack;
 
-namespace gamemaster.CommandHandlers
+namespace gamemaster.CommandHandlers.Tote
 {
     public class ToteFinishTextCommandHandler : ITextCommandHandler
     {

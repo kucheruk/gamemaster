@@ -3,7 +3,7 @@ using gamemaster.Db;
 using gamemaster.Models;
 using MongoDB.Driver;
 
-namespace gamemaster.CommandHandlers
+namespace gamemaster.Queries.Tote
 {
     public class GetCurrentToteForUserQuery
     {
@@ -14,7 +14,7 @@ namespace gamemaster.CommandHandlers
             _ms = ms;
         }
 
-        public async Task<Tote> GetAsync(string userId)
+        public async Task<Models.Tote> GetAsync(string userId)
         {
             var tote = await _ms.Totes
                 .Find(a => a.Owner == userId && a.State != ToteState.Cancelled)
