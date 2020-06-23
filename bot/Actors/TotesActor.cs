@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Akka.Actor;
@@ -48,11 +50,16 @@ namespace gamemaster.Actors
         protected override void PreStart()
         {
             Address = Self;
-            _logger.LogInformation("LEDGER STARTED");
+            _logger.LogInformation("Totes STARTED");
 
             base.PreStart();
         }
 
+        protected override void PreRestart(Exception reason, object message)
+        {
+            _logger.LogError(reason, "Error in totes actor");
+            base.PreRestart(reason, message);
+        }
 
         private async Task CreateNewToteStatusReportInSlack(ToteStatusMessage msg)
         {
@@ -80,13 +87,13 @@ namespace gamemaster.Actors
             var rewards = _rewardsLogic.CalcRewards(tote, msg.OptionId);
             foreach (var reward in rewards.ProportionalReward)
             {
-                Self.Tell(new ValidatedTransferMessage(tote.AccountId(), reward.Account.UserId, reward.Amount,
+                LedgerActor.Address.Tell(new ValidatedTransferMessage(tote.AccountId(), reward.Account.UserId, reward.Amount,
                     tote.Currency,
                     $"Поздравляем! Тотализатор \"{tote.Description}\" завершён, вот законный выигрыш!",
                     false, $"(Тотализатор *{tote.Description}*)"));
             }
 
-            Self.Tell(new ValidatedTransferAllFundsMessage(tote.AccountId(), tote.Owner, tote.Currency,
+            LedgerActor.Address.Tell(new ValidatedTransferAllFundsMessage(tote.AccountId(), tote.Owner, tote.Currency,
                 "Ваше вознаграждение за проведённый тотализатор!", $"(Тотализатор *{tote.Description}*)"));
             MessengerActor.Address.Tell(new UpdateToteReportsMessage(tote.Id));
             MessengerActor.Address.Tell(new ToteWinnersLoosersReportMessage(rewards, tote));
@@ -98,7 +105,7 @@ namespace gamemaster.Actors
             var bets = tote.Options.SelectMany(a => a.Bets);
             foreach (var bet in bets)
             {
-                Self.Tell(new ValidatedTransferMessage(msg.ToteId, bet.User, bet.Amount, tote.Currency,
+                LedgerActor.Address.Tell(new ValidatedTransferMessage(msg.ToteId, bet.User, bet.Amount, tote.Currency,
                     "Тотализатор отмененён, возврат ставки", false, $"(Тотализатор *{tote.Description}*)"));
             }
 
@@ -107,6 +114,8 @@ namespace gamemaster.Actors
 
         private async Task HandlePlaceBet(TotePlaceBetMessage msg)
         {
+            var sw = new Stopwatch();
+            sw.Start();
             var tote = await _getTote.GetAsync(msg.ToteId);
             if (tote.State != ToteState.Started)
             {
@@ -115,6 +124,13 @@ namespace gamemaster.Actors
                 return;
             }
 
+            if (string.IsNullOrEmpty(msg.OptionId))
+            {
+                await _slack.PostAsync(new MessageToChannel(msg.User,
+                    "Чтоб сделать ставку нужно выбрать один вариант исхода."));
+                return;
+            }
+            
             if (msg.Amount <= 0.01m)
             {
                 await _slack.PostAsync(new MessageToChannel(msg.User,
@@ -132,11 +148,13 @@ namespace gamemaster.Actors
 
 
             await _addBetToTote.AddAsync(tote.Id, msg.OptionId, msg.User, msg.Amount);
-            Self.Tell(new ValidatedTransferMessage(msg.User, tote.AccountId(), msg.Amount, tote.Currency,
+            LedgerActor.Address.Tell(new ValidatedTransferMessage(msg.User, tote.AccountId(), msg.Amount, tote.Currency,
                 "Ставка на тотализатор", true));
+            _logger.LogInformation($"PlaceBet Took {sw.ElapsedMilliseconds}ms");
             await _slack.PostAsync(new MessageToChannel(msg.User,
                 $"Ваша ставка в количестве {tote.Currency}{msg.Amount} отправлена на счёт тотализатора!"));
             MessengerActor.Address.Tell(new UpdateToteReportsMessage(tote.Id));
+            sw.Stop();
         }
     }
 }

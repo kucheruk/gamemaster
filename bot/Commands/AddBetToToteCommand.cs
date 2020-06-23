@@ -26,8 +26,7 @@ namespace gamemaster.Commands
             var optionIdx = Array.IndexOf(tote.Options, tote.Options.FirstOrDefault(a => a.Id == optionId)); 
             
             await _ms.Totes.UpdateOneAsync(Builders<Tote>.Filter.Eq(a => a.Id, id),
-
-                Builders<Tote>.Update.Push(a => a.Options[optionIdx].Bets, new ToteBet()
+                Builders<Tote>.Update.Push(a => a.Options[optionIdx].Bets, new ToteBet
                 {
                     Amount = amount,
                     Id = ObjectId.GenerateNewId().ToString(),

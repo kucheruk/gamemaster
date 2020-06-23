@@ -40,7 +40,7 @@ namespace gamemaster.CommandHandlers.Tote
             }
 
             await _cancelTote.CancelAsync(tote.Id);
-            LedgerActor.Address.Tell(new ToteCancelledMessage(tote.Id));
+            TotesActor.Address.Tell(new ToteCancelledMessage(tote.Id));
             return (true, "Аукцион отменён, начинаем отправку ставок обратно");
         }
 

@@ -1,16 +1,16 @@
 namespace gamemaster.Messages
 {
-    public class MessageToChannel
+    public class EphemeralMessageToChannel
     {
-        public MessageToChannel(string channelId, string message)
+        public EphemeralMessageToChannel(string channelId,string userId, string message)
         {
             ChannelId = channelId;
+            UserId = userId;
             Message = message;
         }
 
-        public bool Ephemeral { get; }
         public string ChannelId { get; }
         public string Message { get; }
-        public string UserId { get; set; }
+        public string UserId { get; }
     }
 }

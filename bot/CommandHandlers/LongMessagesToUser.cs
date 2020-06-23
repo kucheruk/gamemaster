@@ -265,16 +265,27 @@ namespace gamemaster.CommandHandlers
         public static SlackDialogModel ToteDialog(Models.Tote toteValue, in decimal balanceAmount)
         {
             var amount = decimal.Round(balanceAmount, 2, MidpointRounding.ToZero);
-            var d = new SlackDialogModel("Приём ставок!", "Ставлю!", "place_bet_dialog");
+            var d = new SlackDialogModel("Приём ставок!", "Ставлю!", "place_bet_dialog:" + toteValue.Id);
             var options = toteValue.Options.ToDictionary(a => a.Id, a => a.Name);
             d.Blocks = new SlackDialogBlock[]
             {
-                new SlackDialogSectionBlock(WelcomeToTote(toteValue, balanceAmount).ToString()),
+                new SlackDialogSectionBlock(ToteDialogDesc(toteValue), true),
                 new SlackDialogDividerBlock(),
                 new SlackDialogInputBlock(new SlackDialogRadioButtonsElement("bet_option", options), "Выбери вариант, на который делаем ставку"),
                 new SlackDialogInputBlock(new SlackDialogPlainTextInputElement("bet_amount", amount.ToString("F2")), $"Количество монет (у тебя их {amount})"),
             };
             return d;
+        }
+
+        private static string ToteDialogDesc(Models.Tote toteValue)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"Тотализатор *{toteValue.Description}*")
+                .AppendLine($"Владелец <@{toteValue.Owner}>")
+                .AppendLine("_(Кстати, а ты знал, что владелец получает 5% от кассы?)_")
+                .AppendLine("Решай, на что делаешь ставку и не жалей монеток!")
+                .AppendLine("Вся собранная сумма будет поделена между угадавшими участниками, пропорционально сумме их ставок.");
+            return sb.ToString();
         }
     }
 }

@@ -76,7 +76,7 @@ namespace gamemaster.Actors
         {
             var balance = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.FromAccount, msg.Currency);
             var b = balance.FirstOrDefault();
-            Self.Tell(new ValidatedTransferMessage(msg.FromAccount, msg.ToAccount, b.Amount, b.Account.Currency,
+            Address.Tell(new ValidatedTransferMessage(msg.FromAccount, msg.ToAccount, b.Amount, b.Account.Currency,
                 msg.OpDesc, false, msg.FromCaption));
         }
 
@@ -100,7 +100,7 @@ namespace gamemaster.Actors
                 var amount = msg.Amount * 1m / msg.Users.Length;
                 foreach (var user in msg.Users)
                 {
-                    Self.Tell(new ValidatedTransferMessage(msg.FromUser, user, amount, msg.Currency,
+                    Address.Tell(new ValidatedTransferMessage(msg.FromUser, user, amount, msg.Currency,
                         $"Раздача монеток для участников канала <#{msg.Channel.ChannelId}>"));
                 }
 
@@ -135,7 +135,7 @@ namespace gamemaster.Actors
             }
             else
             {
-                Self.Tell(new ValidatedTransferMessage(msg.FromUser, msg.ToUser, msg.Amount, msg.Currency,
+                Address.Tell(new ValidatedTransferMessage(msg.FromUser, msg.ToUser, msg.Amount, msg.Currency,
                     msg.Comment));
                 var reply = $"Запрос выполнен, {msg.Currency}{msg.Amount} отправлены пользователю <@{toUser}>";
                 if (!string.IsNullOrEmpty(msg.Comment))

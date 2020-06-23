@@ -38,6 +38,11 @@ namespace gamemaster.Slack
             await _client.PostMessageAsync(msg.ChannelId, msg.Message);
         }
 
+        public async Task PostEphemeralAsync(EphemeralMessageToChannel msg)
+        {
+            await _client.PostEphemeralMessageAsync(msg.ChannelId, msg.Message, msg.UserId);
+        }
+
         public async Task PostAsync(BlocksMessage msg)
         {
             await _client.PostMessageAsync(msg.ChannelId, text:string.Empty, blocks:msg.Blocks);

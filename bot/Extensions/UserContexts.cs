@@ -19,7 +19,6 @@ namespace gamemaster.Extensions
         {
             _slack = slack;
             _logger = logger;
-            ReceiveAsync<PlaceBetMessage>(PlaceBetAmount);
             Receive<PlaceBetStartMessage>(StartBetDialog);
             ReceiveAsync<PlaceBetSelectOptionMessage>(SelectNumber);
         }
@@ -55,22 +54,6 @@ public static IActorRef Address { get; private set; }
 
             return true;
         }
-        private async Task<bool> PlaceBetAmount(PlaceBetMessage msg)
-        {
-            _logger.LogInformation("Place bet {user} {text}", msg.UserId, msg.Text);
-            var child = Context.Child($"bet_{msg.UserId}");
-            if (child.IsNobody())
-            {
-                await _slack.PostAsync(new MessageToChannel(msg.UserId, "Время выбора деталей ставки истекло. Нажми-ка кнопку для участия в тотализаторе ещё раз."));
-            }
-            else
-            {
-                child.Forward(msg);
-            }
-
-            return true;
-        }
-
         protected override void PreRestart(Exception reason, object message)
         {
             _logger.LogError(reason, "Error");

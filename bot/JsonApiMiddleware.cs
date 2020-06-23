@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using System.Web;
 using Akka.Actor;
 using gamemaster.Actors;
-using gamemaster.CommandHandlers;
 using gamemaster.CommandHandlers.Ledger;
 using gamemaster.CommandHandlers.Tote;
 using gamemaster.Config;
@@ -29,7 +28,6 @@ namespace gamemaster
         private readonly IOptions<SlackConfig> _cfg;
         private readonly EmissionRequestHandler _emissionHandler;
         private readonly ILogger<JsonApiMiddleware> _logger;
-        private readonly PlaceBetInteractionHandler _placeBetHandler;
         private readonly SlackRequestSignature _slackSignature;
         private readonly TossACoinHandler _tossHandler;
         private readonly ToteRequestHandler _toteHandler;
@@ -43,7 +41,7 @@ namespace gamemaster
             BalanceRequestHandler balanceHandler,
             TossACoinHandler tossHandler,
             ToteRequestHandler toteHandler,
-            PlaceBetInteractionHandler placeBetHandler, SlackApiWrapper slack)
+            SlackApiWrapper slack)
         {
             _cfg = cfg;
             _emissionHandler = emissionHandler;
@@ -52,7 +50,6 @@ namespace gamemaster
             _balanceHandler = balanceHandler;
             _tossHandler = tossHandler;
             _toteHandler = toteHandler;
-            _placeBetHandler = placeBetHandler;
             _slack = slack;
         }
 
@@ -87,16 +84,6 @@ namespace gamemaster
                                     var e = rq["event"];
                                     if (e?["type"]?.ToString() == "message")
                                     {
-                                        _logger.LogInformation(rq.ToString(Formatting.Indented));
-                                        if (e?["bot_id"]?.ToString() == null)
-                                        {
-                                            var user = e["user"];
-                                            var text = e["text"];
-                                            _placeBetHandler.HandleUserText(user?.ToString(), text?.ToString());
-                                            context.Response.StatusCode = 200;
-                                            await context.Response.WriteAsync("");
-                                        }
-
                                         return;
                                     }
                                 }
@@ -127,7 +114,7 @@ namespace gamemaster
                                     _logger.LogInformation("Got pl={Payload}", JsonConvert.SerializeObject(pl));
                                     HandleInteraction(pl);
                                     context.Response.StatusCode = 200;
-                                    await context.Response.WriteAsync("еуые");
+                                    await context.Response.WriteAsync("mkay!");
                                 }
                             }
                         }
@@ -156,9 +143,21 @@ namespace gamemaster
                 {
                     var v = values;
                     var vals = v.SelectMany(a => a.Value).ToDictionary(a => a.Key, a => a.Value);
-                    if (vals.ContainsKey("bet_option") && vals.ContainsKey("bet_amount"))
+                    if (vals.TryGetValue("bet_option", out var option) && vals.TryGetValue("bet_amount", out var amount))
                     {
-                        
+                        var cb = pl.View.CallbackId;
+                        if (!string.IsNullOrEmpty(cb))
+                        {
+                            var parts = cb.Split(':');
+                            if (parts.Length > 1)
+                            {
+                                var toteId = parts[1];
+                                var userId = pl.User.Id;
+                                var optId = option.SelectedOption.Value;
+                                var am = decimal.Round(decimal.Parse(amount.Value), 2, MidpointRounding.ToZero);
+                                TotesActor.Address.Tell(new TotePlaceBetMessage(userId, toteId, optId, am, pl?.Channel?.Id));
+                            }
+                        }
                     }
                 }
             }

@@ -11,7 +11,7 @@ namespace gamemaster.Queries.Tote
             var bets = tote.Options.SelectMany(a => a.Bets);
             var totalSum = bets.Sum(a => a.Amount);
 
-            var ownerPercent = totalSum / 100;
+            var ownerPercent = totalSum / 20; //5% more fun than 1%
             var winningFund = totalSum - ownerPercent;
 
             ToteOption winningOption = tote.Options.FirstOrDefault(a => a.Id == winningOptionId);

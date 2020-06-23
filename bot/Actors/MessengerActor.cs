@@ -58,7 +58,7 @@ namespace gamemaster.Actors
         protected override void PreStart()
         {
             Address = Self;
-            _logger.LogInformation("LEDGER STARTED");
+            _logger.LogInformation("Messenger STARTED");
 
             base.PreStart();
         }

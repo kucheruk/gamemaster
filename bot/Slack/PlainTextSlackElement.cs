@@ -4,10 +4,10 @@ namespace gamemaster.Slack
 {
     public class PlainTextSlackElement : SlackElement
     {
-        public PlainTextSlackElement(string txt, string type ="plain_text")
+        public PlainTextSlackElement(string txt, string tyoe ="plain_text")
         {
             Text = txt;
-            Type = type;
+            Type = tyoe;
         }
         [JsonProperty("type")]
         public string Type { get; set; }

@@ -20,19 +20,16 @@ namespace gamemaster.Extensions
         private readonly GetToteByIdQuery _getTote;
         private readonly GetUserBalanceQuery _balance;
         private string _user;
-        private string _tote;
         private Tote _toteValue;
-        private ToteOption _option;
         private readonly SlackApiWrapper _slack;
         private readonly ILogger<UserToteContextActor> _logger;
-        private readonly SlackResponseService _response;
 
         public UserToteContextActor( 
             CurrentPeriodService cp, 
             GetToteByIdQuery getTote,
             GetUserBalanceQuery balance,
             SlackApiWrapper slack, 
-            ILogger<UserToteContextActor> logger, SlackResponseService response)
+            ILogger<UserToteContextActor> logger)
         {
             
             _cp = cp;
@@ -40,9 +37,7 @@ namespace gamemaster.Extensions
             _balance = balance;
             _slack = slack;
             _logger = logger;
-            _response = response;
             ReceiveAsync<PlaceBetStartMessage>(SetTote);
-            ReceiveAsync<PlaceBetMessage>(PlaceBet);
             ReceiveAsync<PlaceBetSelectOptionMessage>(SelectNumber);
             Receive<ReceiveTimeout>(Stop);
         }
@@ -57,37 +52,13 @@ namespace gamemaster.Extensions
             }
             else
             {
-                _option = option;
                 await _slack.PostAsync(new MessageToChannel(_user,
                     $"Сохранили номер выбранного тобою варианта: [{option.Number}] ({option.Name})\nТеперь напиши мне количество монет, которые готов поставить. Просто числом."));
             }
         }
-
-        private async Task PlaceBet(PlaceBetMessage msg)
-        {
-            if (_option == null)
-            {
-                await _slack.PostAsync(new MessageToChannel(_user, $"Прежде чем сделать ставку, нужно выбрать на что ты ставишь - используй одну из кнопок вариантов"));
-            }
-            else
-            {
-                if (decimal.TryParse(msg.Text, out var amount))
-                {
-                    amount = decimal.Round(amount, 2);
-                    TotesActor.Address.Tell(new TotePlaceBetMessage(_user, _tote, _option.Id,  amount));
-                    await Self.GracefulStop(TimeSpan.FromMilliseconds(10));
-                }
-                else
-                {
-                    await _slack.PostAsync(new MessageToChannel(_user, $"В течении ближайших минут ждём от тебя число - количество {_toteValue.Currency}, которое ты готов поставить."));
-                }
-            }
-        }
-
-
+        
         private async Task SetTote(PlaceBetStartMessage pars)
         {
-            _tote = pars.ToteId;
             _user = pars.UserId;
             _toteValue = await _getTote.GetAsync(pars.ToteId);
             var balance = await _balance.GetAsync(_cp.Period, _user, _toteValue.Currency);
