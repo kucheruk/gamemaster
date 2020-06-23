@@ -8,6 +8,7 @@ namespace gamemaster.Extensions
     {
         public static void AddTote(this IServiceCollection services)
         {
+            services.AddSingleton<FinishToteAmountsLogicQuery>();
             services.AddSingleton<ToteReportCountQuery>();
             services.AddSingleton<GetToteReportsQuery>();
             services.AddSingleton<SaveToteReportPointCommand>();

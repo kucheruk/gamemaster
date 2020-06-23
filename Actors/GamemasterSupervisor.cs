@@ -16,6 +16,8 @@ namespace gamemaster.Actors
         {
             Context.ChildWithBackoffSupervision<LedgerActor>();
             Context.ChildWithBackoffSupervision<UserContextsActor>();
+            Context.ChildWithBackoffSupervision<TotesActor>();
+            Context.ChildWithBackoffSupervision<MessengerActor>();
         }
 
         protected override void PreStart()

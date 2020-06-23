@@ -1,4 +1,3 @@
-using gamemaster.Actors;
 using gamemaster.Config;
 using gamemaster.Extensions;
 using gamemaster.Services;
@@ -19,10 +18,8 @@ namespace gamemaster
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers().AddNewtonsoftJson();
             services.Configure<SlackConfig>(Configuration.GetSection("Slack"));
             services.Configure<MongoConfig>(Configuration.GetSection("Mongo"));
             services.AddMongoStorage();
@@ -30,16 +27,11 @@ namespace gamemaster
             services.AddTote();
             services.AddAppState();
             services.AddSlack();
-            services.AddSingleton<MessageRouter>();
+            services.AddActors();
             services.AddSingleton<SlackRequestSignature>();
-            services.AddTransient<GamemasterSupervisor>();
-            services.AddTransient<UserContextsActor>();
-            services.AddTransient<UserToteContextActor>();
-            services.AddSingleton<IHostedService, ActorsHostService>();
             services.AddTransient<DbMaintenanceService>();
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
@@ -47,12 +39,7 @@ namespace gamemaster
                 app.UseDeveloperExceptionPage();
             }
 
-            // app.UseMiddleware<DebugLoggingMiddleware>();
             app.UseMiddleware<JsonApiMiddleware>();
-            // app.UseRouting();
-            // app.UseAuthorization();
-            // app.UseAuthentication();
-            // app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }
     }
 }

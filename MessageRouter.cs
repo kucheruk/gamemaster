@@ -14,6 +14,7 @@ namespace gamemaster
         private ActorSystem _as;
         private IActorRef _ledger;
         private IActorRef _userContexts;
+        public IActorRef Messenger { get; private set; }
 
         public MessageRouter(ILogger<MessageRouter> logger)
         {
@@ -27,11 +28,22 @@ namespace gamemaster
         }
 
 
+        public void RegisterMessenger(IActorRef aref)
+        {
+            Messenger = aref;
+        }
+        
         public void RegisterLedger(IActorRef aref)
         {
             _ledger = aref;
         }
 
+        public void RegisterTotes(IActorRef aref)
+        {
+            _ledger = aref;
+        }
+
+        
         public void LedgerEmit(string toUser, string currency,
             in decimal amount, string adminId,
             string responseUrl)
