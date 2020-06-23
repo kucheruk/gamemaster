@@ -67,12 +67,7 @@ namespace gamemaster
         {
             _ledger.Tell(msg);
         }
-
-        public void LedgerCancelTote(ToteCancelledMessage msg)
-        {
-            _ledger.Tell(msg);
-        }
-
+        
         public void LedgerFinishTote(ToteFinishedMessage msg)
         {
             _ledger.Tell(msg);
@@ -107,9 +102,5 @@ namespace gamemaster
             _userContexts.Tell(msg);
         }
 
-        public void ToteStatus(ToteStatusMessage msg)
-        {
-            _ledger.Tell(msg);
-        }
     }
 }

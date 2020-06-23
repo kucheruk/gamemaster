@@ -66,7 +66,6 @@ namespace gamemaster.Actors
             ReceiveAsync<GiveAwayMessage>(HandleGiveAway);
             ReceiveAsync<GetBalanceMessage>(ResponseWithBalance);
             ReceiveAsync<GetAccountBalanceRequestMessage>(GetAccountBalance);
-            ReceiveAsync<ToteStatusMessage>(CreateNewToteStatusReportInSlack);
             ReceiveAsync<ValidatedTransferMessage>(TransferToUser);
             ReceiveAsync<ValidatedTransferAllFundsMessage>(TransferAll);
             ReceiveAsync<MsgTick>(async a => await NewPeriod());
@@ -249,17 +248,6 @@ namespace gamemaster.Actors
             await _slackResponse.ResponseWithText(msg.ResponseUrl, sb.ToString(), true, true);
         }
 
-
-        private async Task CreateNewToteStatusReportInSlack(ToteStatusMessage msg)
-        {
-            var response = LongMessagesToUser.ToteDetails(msg.Tote);
-
-            var mess = await _slack.PostAsync(msg.Context.ChannelId, response.ToArray());
-            if (mess.ok)
-            {
-                await _saveToteReportPoint.SaveAsync(msg.Context, mess.ts, msg.Tote.Id);
-            }
-        }
 
         private async Task HandleEmissions(EmitMessage emitMessage)
         {

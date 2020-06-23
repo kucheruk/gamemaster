@@ -12,21 +12,22 @@ namespace gamemaster.Actors
 {
     public class TotesActor : ReceiveActor
     {
+        private readonly AddBetToToteCommand _addBetToTote;
+        private readonly FinishToteCommand _finishTote;
         private readonly GetToteByIdQuery _getTote;
-        private readonly MessageRouter _router;
         private readonly ILogger<TotesActor> _logger;
         private readonly FinishToteAmountsLogicQuery _rewardsLogic;
-        private readonly FinishToteCommand _finishTote;
-        private readonly AddBetToToteCommand _addBetToTote;
+        private readonly MessageRouter _router;
+        private readonly SaveToteReportPointCommand _saveToteReportPoint;
         private readonly SlackApiWrapper _slack;
 
-        public TotesActor(GetToteByIdQuery getTote, 
+        public TotesActor(GetToteByIdQuery getTote,
             MessageRouter router,
-            ILogger<TotesActor> logger, 
+            ILogger<TotesActor> logger,
             FinishToteAmountsLogicQuery rewardsLogic,
-            FinishToteCommand finishTote, 
+            FinishToteCommand finishTote,
             AddBetToToteCommand addBetToTote,
-            SlackApiWrapper slack)
+            SlackApiWrapper slack, SaveToteReportPointCommand saveToteReportPoint)
         {
             _getTote = getTote;
             _router = router;
@@ -35,18 +36,35 @@ namespace gamemaster.Actors
             _finishTote = finishTote;
             _addBetToTote = addBetToTote;
             _slack = slack;
+            _saveToteReportPoint = saveToteReportPoint;
             ReceiveAsync<ToteCancelledMessage>(HandleToteCancel);
             ReceiveAsync<ToteFinishedMessage>(HandleToteFinish);
+            ReceiveAsync<ToteStatusMessage>(CreateNewToteStatusReportInSlack);
             ReceiveAsync<TotePlaceBetMessage>(HandlePlaceBet);
         }
-        
+
+        public static IActorRef Address { get; private set; }
+
         protected override void PreStart()
         {
-            _router.RegisterLedger(Self);
+            Address = Self;
             _logger.LogInformation("LEDGER STARTED");
 
             base.PreStart();
         }
+
+
+        private async Task CreateNewToteStatusReportInSlack(ToteStatusMessage msg)
+        {
+            var response = LongMessagesToUser.ToteDetails(msg.Tote);
+
+            var mess = await _slack.PostAsync(msg.Context.ChannelId, response.ToArray());
+            if (mess.ok)
+            {
+                await _saveToteReportPoint.SaveAsync(msg.Context, mess.ts, msg.Tote.Id);
+            }
+        }
+
 
         private async Task HandleToteFinish(ToteFinishedMessage msg)
         {
@@ -86,6 +104,7 @@ namespace gamemaster.Actors
 
             _router.Messenger.Tell(new UpdateToteReportsMessage(tote.Id));
         }
+
         private async Task HandlePlaceBet(TotePlaceBetMessage msg)
         {
             var tote = await _getTote.GetAsync(msg.ToteId);
@@ -119,8 +138,5 @@ namespace gamemaster.Actors
                 $"Ваша ставка в количестве {tote.Currency}{msg.Amount} отправлена на счёт тотализатора!"));
             _router.Messenger.Tell(new UpdateToteReportsMessage(tote.Id));
         }
-
-
-
     }
 }

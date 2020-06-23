@@ -8,6 +8,14 @@ namespace gamemaster.Extensions
     {
         public static void AddTote(this IServiceCollection services)
         {
+            services.AddSingleton<ITextCommandHandler, ToteStartTextCommandHandler>();
+            services.AddSingleton<ITextCommandHandler, ToteFinishTextCommandHandler>();
+            services.AddSingleton<ITextCommandHandler, NewToteTextCommandHandler>();
+            services.AddSingleton<ITextCommandHandler, ToteCancelTextCommandHandler>();
+            services.AddSingleton<ITextCommandHandler, ToteReportTextCommandHandler>();
+            services.AddSingleton<ITextCommandHandler, ToteHelpTextCommandHandler>();
+            services.AddSingleton<ITextCommandHandler, ToteAddOptionTextCommandHandler>();
+            services.AddSingleton<ITextCommandHandler, ToteRemoveOptionTextCommandHandler>();
             services.AddSingleton<FinishToteAmountsLogicQuery>();
             services.AddSingleton<ToteReportCountQuery>();
             services.AddSingleton<GetToteReportsQuery>();
