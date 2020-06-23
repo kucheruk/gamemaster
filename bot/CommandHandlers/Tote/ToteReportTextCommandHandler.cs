@@ -34,7 +34,7 @@ namespace gamemaster.CommandHandlers.Tote
 
             if (cmd.Context.Type == ChannelType.Direct)
             {
-                await _slackResponse.ResponseWithBlocks(cmd.ResponseUrl, LongMessagesToUser.ToteDetails(tote), true);
+                await _slackResponse.ResponseWithBlocks(cmd.ResponseUrl, LongMessagesToUser.ToteDetails(tote), false);
             }
             else
             {

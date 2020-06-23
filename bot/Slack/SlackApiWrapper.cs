@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using gamemaster.Config;
@@ -135,7 +136,28 @@ namespace gamemaster.Slack
         }
         private static readonly JsonSerializer JsonSerializer = new JsonSerializer();
 
-        
+
+        public async Task Dialog(string triggerId, SlackDialogModel toteDialog)
+        {
+            var http = _http.CreateClient();
+            var uri =
+                $"https://slack.com/api/views.open";
+            
+            var rq = JsonConvert.SerializeObject(new ViewsOpenRequest(triggerId, toteDialog));
+            _logger.LogInformation("Request for create dialog: {Req}", rq);
+            var request = new StringContent(rq, Encoding.UTF8, "application/json");
+            var httpreq = new HttpRequestMessage(HttpMethod.Post, uri);
+            httpreq.Headers.Add("Authorization", $"Bearer {_token}");
+            httpreq.Content = request;
+            var resp = await http.SendAsync(httpreq);
+            var s = await resp.Content.ReadAsStringAsync();
+            _logger.LogInformation("Response for create dialog: {Resp}", s);
+            if (!resp.IsSuccessStatusCode)
+            {
+                
+                return;
+            }
+        }
     }
 
     public class ConversationsMembersResponse

@@ -234,7 +234,7 @@ namespace gamemaster.Actors
                 {
                     if (!v.Account.UserId.StartsWith("tote_"))
                     {
-                        sb.AppendLine($"<@{v.Account.UserId}> {v.Account.Currency}{v.Amount}");
+                        sb.AppendLine($"<@{v.Account.UserId}> {v.Account.Currency}{decimal.Round(v.Amount, 2)}");
                     }
                 }
             }
@@ -252,7 +252,7 @@ namespace gamemaster.Actors
             if (!string.IsNullOrEmpty(emitMessage.ResponseUrl))
             {
                 await _slackResponse.ResponseWithText(emitMessage.ResponseUrl,
-                    $"Зачислено на счёт {emitMessage.Currency}{emitMessage.Amount}");
+                    $"Зачислено на счёт {emitMessage.Currency}{decimal.Round(emitMessage.Amount, 2)}");
             }
         }
 
@@ -269,8 +269,7 @@ namespace gamemaster.Actors
         private static DateTime NextPeriodTimestamp()
         {
             var now = DateTime.Now;
-            var nextPeriodTimestamp = now.Date.AddHours(now.Hour + 1);
-            return nextPeriodTimestamp;
+            return now.Date.AddDays(1);
         }
 
         private void ScheduleNextPeriodTick(DateTime when)
@@ -292,6 +291,7 @@ namespace gamemaster.Actors
             _logger.LogError(cause, "Error in Ledger {Message}", message);
             base.AroundPreRestart(cause, message);
         }
+        
         public static IActorRef Address { get; private set; }
     }
 }

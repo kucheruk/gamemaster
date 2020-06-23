@@ -39,14 +39,14 @@ namespace gamemaster.CommandHandlers.Tote
                     return (false, "Формат команды: `/tote add Какой-то вариант на который можно делать ставку`");
                 }
 
-                if (tote.Options.Any(a => String.Equals(a.Name, cmd.Text, StringComparison.InvariantCultureIgnoreCase)))
+                if (tote.Options.Any(a => String.Equals(a.Name, option, StringComparison.InvariantCultureIgnoreCase)))
                 {
-                    return (false, "Не получится добавить два варианта с одинаковым названием. Но за попытку зачёт.");
+                    return (false, "Не получится добавить два варианта с одинаковым названием. Но спасибо за тестирование.");
                 }
 
                 var ret = await _addToteOption.AddAsync(tote, option);
                 var response = LongMessagesToUser.ToteDetails(ret);
-                await _slackResponse.ResponseWithBlocks(cmd.ResponseUrl, response, true);
+                await _slackResponse.ResponseWithBlocks(cmd.ResponseUrl, response, false);
                 return (true, string.Empty);
             }
 

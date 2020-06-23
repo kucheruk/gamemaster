@@ -25,13 +25,14 @@ namespace gamemaster.Extensions
         private ToteOption _option;
         private readonly SlackApiWrapper _slack;
         private readonly ILogger<UserToteContextActor> _logger;
+        private readonly SlackResponseService _response;
 
         public UserToteContextActor( 
             CurrentPeriodService cp, 
             GetToteByIdQuery getTote,
             GetUserBalanceQuery balance,
             SlackApiWrapper slack, 
-            ILogger<UserToteContextActor> logger)
+            ILogger<UserToteContextActor> logger, SlackResponseService response)
         {
             
             _cp = cp;
@@ -39,6 +40,7 @@ namespace gamemaster.Extensions
             _balance = balance;
             _slack = slack;
             _logger = logger;
+            _response = response;
             ReceiveAsync<PlaceBetStartMessage>(SetTote);
             ReceiveAsync<PlaceBetMessage>(PlaceBet);
             ReceiveAsync<PlaceBetSelectOptionMessage>(SelectNumber);
@@ -90,8 +92,8 @@ namespace gamemaster.Extensions
             _toteValue = await _getTote.GetAsync(pars.ToteId);
             var balance = await _balance.GetAsync(_cp.Period, _user, _toteValue.Currency);
             var balanceAmount = balance.Count > 0 ? balance[0].Amount : 0;
-            await _slack.PostAsync(new MessageToChannel(_user, LongMessagesToUser.WelcomeToTote(_toteValue, balanceAmount).ToString()));
-            await _slack.PostAsync(new BlocksMessage(LongMessagesToUser.ToteOptionsButtons(_toteValue), _user));
+            await _slack.Dialog(pars.TriggerId, LongMessagesToUser.ToteDialog(_toteValue, balanceAmount));
+            // await _response.ResponseWithBlocks(pars.ResponseUrl, LongMessagesToUser.ToteOptionsButtons(_toteValue, balanceAmount).ToList(), true);
         }
 
         private void Stop(ReceiveTimeout obj)

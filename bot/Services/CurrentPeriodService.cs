@@ -42,7 +42,7 @@ namespace gamemaster.Services
 
         public string CreatePeriodId()
         {
-            return DateTime.Now.ToString("yyyy-MM-dd-HH");
+            return DateTime.Now.ToString("yyyy-MM-dd");
         }
     }
 }

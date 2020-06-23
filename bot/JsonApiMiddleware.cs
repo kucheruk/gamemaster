@@ -142,16 +142,30 @@ namespace gamemaster
 
         private void HandleInteraction(SlackInteractionPayload pl)
         {
-            if (pl.Actions.Count > 0)
+            if (pl?.Actions?.Count > 0)
             {
                 foreach (var action in pl.Actions)
                 {
-                    HandleInteractionAction(action, pl.User.Id);
+                    HandleInteractionAction(action, pl.User.Id, pl.ResponseUrl, pl.TriggerId);
+                }
+            }
+            else
+            {
+                var values = pl?.View?.State?.Values;
+                if (values != null)
+                {
+                    var v = values;
+                    var vals = v.SelectMany(a => a.Value).ToDictionary(a => a.Key, a => a.Value);
+                    if (vals.ContainsKey("bet_option") && vals.ContainsKey("bet_amount"))
+                    {
+                        
+                    }
                 }
             }
         }
 
-        private void HandleInteractionAction(SlackInteractionAction action, string userId)
+        private void HandleInteractionAction(SlackInteractionAction action, string userId,
+            string plResponseUrl, string triggerId)
         {
             if (action.ActionId.StartsWith("finish_tote"))
             {
@@ -162,7 +176,7 @@ namespace gamemaster
             if (action.ActionId.StartsWith("start_bet"))
             {
                 var parts = action.ActionId.Split(':');
-                HandleStartBet(parts[1], userId);
+                HandleStartBet(parts[1], userId, plResponseUrl, triggerId);
             }
 
             if (action.ActionId.StartsWith("option_select"))
@@ -172,9 +186,10 @@ namespace gamemaster
             }
         }
 
-        private void HandleStartBet(string toteId, string userId)
+        private void HandleStartBet(string toteId, string userId,
+            string plResponseUrl, string triggerId)
         {
-            UserContextsActor.Address.Tell(new PlaceBetStartMessage(userId, toteId));
+            UserContextsActor.Address.Tell(new PlaceBetStartMessage(userId, toteId, plResponseUrl, triggerId));
         }
 
         private void HandleSelectNumber(string toteId, string optionId,

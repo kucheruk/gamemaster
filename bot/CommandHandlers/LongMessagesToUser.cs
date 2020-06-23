@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using gamemaster.Messages;
 using gamemaster.Models;
+using gamemaster.Slack;
 using SlackAPI;
 
 namespace gamemaster.CommandHandlers
@@ -200,9 +201,11 @@ namespace gamemaster.CommandHandlers
             return sb;
         }
 
-        public static IBlock[] ToteOptionsButtons(Models.Tote toteValue)
+        public static IBlock[] ToteOptionsButtons(Models.Tote toteValue, decimal balanceAmount)
         {
-            return ToteOptionsWithCta(toteValue, "Выбери вариант, который ты считаешь выигрышным", "option_select");
+            var cta = WelcomeToTote(toteValue, balanceAmount);
+            cta.AppendLine("Выбери вариант, который ты считаешь выигрышным");
+            return ToteOptionsWithCta(toteValue, cta.ToString(), "option_select");
         }
 
         public static IBlock[] ToteFinishButtons(Models.Tote toteValue)
@@ -257,6 +260,21 @@ namespace gamemaster.CommandHandlers
 
             sb.AppendLine("Всем спасибо за участие!");
             return sb.ToString();
+        }
+
+        public static SlackDialogModel ToteDialog(Models.Tote toteValue, in decimal balanceAmount)
+        {
+            var amount = decimal.Round(balanceAmount, 2, MidpointRounding.ToZero);
+            var d = new SlackDialogModel("Приём ставок!", "Ставлю!", "place_bet_dialog");
+            var options = toteValue.Options.ToDictionary(a => a.Id, a => a.Name);
+            d.Blocks = new SlackDialogBlock[]
+            {
+                new SlackDialogSectionBlock(WelcomeToTote(toteValue, balanceAmount).ToString()),
+                new SlackDialogDividerBlock(),
+                new SlackDialogInputBlock(new SlackDialogRadioButtonsElement("bet_option", options), "Выбери вариант, на который делаем ставку"),
+                new SlackDialogInputBlock(new SlackDialogPlainTextInputElement("bet_amount", amount.ToString("F2")), $"Количество монет (у тебя их {amount})"),
+            };
+            return d;
         }
     }
 }

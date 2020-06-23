@@ -36,27 +36,35 @@ namespace gamemaster.CommandHandlers.Tote
                     "Сначала нужно завершить текущий тотализатор. Нам просто слишком лениво обрабатывать много тотализаторов одновременно, сорян");
             }
 
-            var rest = cmd.Text.Substring(4).Trim();
-            var currency = CommandsPartsParse.FindCurrency(rest.Split(" "), ":coin:");
-            if (string.IsNullOrEmpty(currency))
+            var rest = cmd.Text.Substring(3).Trim();
+            var parts = rest.Split(" ");
+            if (parts.Length > 1)
             {
-                return (false,
-                    "Не понял в какой валюте запускать тотализатор. Пример запуска: `/tote new :currency: Кого уволят первым?`, где :currency: - любой тип монеток, существующий у пользователей на руках.");
+                var currency = CommandsPartsParse.FindCurrency(parts, null);
+
+                if (string.IsNullOrEmpty(currency))
+                {
+                    return (false,
+                        "Не понял в какой валюте запускать тотализатор. Пример запуска: `/tote new :currency: Кого уволят первым?`, где :currency: - любой тип монеток, существующий у пользователей на руках, например :coin:.");
+                }
+
+                rest = rest.Substring(rest.IndexOf(currency, StringComparison.OrdinalIgnoreCase) + currency.Length)
+                    .Trim();
+
+                if (string.IsNullOrEmpty(rest))
+                {
+                    return (false,
+                        "Для старта тотализатора обязательно укажи его название. Например: `/tote new :currency: Кто победит в поедании печенек на скорость?`, где :currency: - любой тип монеток, существующий у пользователей на руках.");
+                }
+
+                var newTote = await _createNewTote.CreateNewAsync(cmd.UserId, currency, rest);
+                var response = LongMessagesToUser.ToteDetails(newTote);
+                await _slackResponse.ResponseWithBlocks(cmd.ResponseUrl, response, false);
+                return (true, string.Empty);
             }
 
-            rest = rest.Substring(rest.IndexOf(currency, StringComparison.OrdinalIgnoreCase) + currency.Length)
-                .Trim();
-
-            if (string.IsNullOrEmpty(rest))
-            {
-                return (false,
-                    "Для старта тотализатора обязательно укажи его название. Например: `/tote new :currency: Кто победит в поедании печенек на скорость?`, где :currency: - любой тип монеток, существующий у пользователей на руках.");
-            }
-
-            var newTote = await _createNewTote.CreateNewAsync(cmd.UserId, currency, rest);
-            var response = LongMessagesToUser.ToteDetails(newTote);
-            await _slackResponse.ResponseWithBlocks(cmd.ResponseUrl, response, true);
-            return (true, string.Empty);
+            return (false,
+                "Для старта тотализатора обязательно укажи вид монет и его название. Например: `/tote new :currency: Кто победит в поедании печенек на скорость?`, где :currency: - любой тип монеток, существующий у пользователей на руках.");
         }
     }
 }
