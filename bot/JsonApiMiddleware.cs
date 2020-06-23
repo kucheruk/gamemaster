@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
+using Akka.Actor;
+using gamemaster.Actors;
 using gamemaster.CommandHandlers;
 using gamemaster.CommandHandlers.Ledger;
 using gamemaster.CommandHandlers.Tote;
@@ -28,7 +30,6 @@ namespace gamemaster
         private readonly EmissionRequestHandler _emissionHandler;
         private readonly ILogger<JsonApiMiddleware> _logger;
         private readonly PlaceBetInteractionHandler _placeBetHandler;
-        private readonly MessageRouter _router;
         private readonly SlackRequestSignature _slackSignature;
         private readonly TossACoinHandler _tossHandler;
         private readonly ToteRequestHandler _toteHandler;
@@ -37,7 +38,6 @@ namespace gamemaster
         public JsonApiMiddleware(RequestDelegate _,
             IOptions<SlackConfig> cfg,
             EmissionRequestHandler emissionHandler,
-            MessageRouter router,
             SlackRequestSignature slackSignature,
             ILogger<JsonApiMiddleware> logger,
             BalanceRequestHandler balanceHandler,
@@ -47,7 +47,6 @@ namespace gamemaster
         {
             _cfg = cfg;
             _emissionHandler = emissionHandler;
-            _router = router;
             _slackSignature = slackSignature;
             _logger = logger;
             _balanceHandler = balanceHandler;
@@ -175,19 +174,19 @@ namespace gamemaster
 
         private void HandleStartBet(string toteId, string userId)
         {
-            _router.StartBetProcess(new PlaceBetStartMessage(userId, toteId));
+            UserContextsActor.Address.Tell(new PlaceBetStartMessage(userId, toteId));
         }
 
         private void HandleSelectNumber(string toteId, string optionId,
             string userId)
         {
-            _router.SelectBetOption(new PlaceBetSelectOptionMessage(userId, toteId, optionId));
+            UserContextsActor.Address.Tell(new PlaceBetSelectOptionMessage(userId, toteId, optionId));
         }
 
         private void HandleFinishTote(string toteId, string optionId,
             string userId)
         {
-            _router.LedgerFinishTote(new ToteFinishedMessage(toteId, optionId, userId));
+            TotesActor.Address.Tell(new ToteFinishedMessage(toteId, optionId, userId));
         }
 
         private SlackInteractionPayload DeserializePayload(string payload)

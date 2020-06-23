@@ -10,18 +10,16 @@ namespace gamemaster.Actors
 {
     public class MessengerActor: ReceiveActor
     {
-        private readonly MessageRouter _router;
         private readonly ILogger<MessengerActor> _logger;
         private readonly GetToteReportsQuery _toteReports;
         private readonly GetToteByIdQuery _getTote;
         private readonly SlackApiWrapper _slack;
 
-        public MessengerActor(MessageRouter router, 
+        public MessengerActor( 
             ILogger<MessengerActor> logger,
             GetToteReportsQuery toteReports, SlackApiWrapper slack,
             GetToteByIdQuery getTote)
         {
-            _router = router;
             _logger = logger;
             _toteReports = toteReports;
             _slack = slack;

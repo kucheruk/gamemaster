@@ -1,4 +1,7 @@
+using Akka.Actor;
+using gamemaster.Actors;
 using gamemaster.Config;
+using gamemaster.Messages;
 using Microsoft.Extensions.Options;
 
 namespace gamemaster.CommandHandlers.Ledger
@@ -6,12 +9,10 @@ namespace gamemaster.CommandHandlers.Ledger
     public class EmissionRequestHandler
     {
         private readonly IOptions<SlackConfig> _cfg;
-        private readonly MessageRouter _router;
 
-        public EmissionRequestHandler(IOptions<SlackConfig> cfg, MessageRouter router)
+        public EmissionRequestHandler(IOptions<SlackConfig> cfg)
         {
             _cfg = cfg;
-            _router = router;
         }
 
         public (bool success, string reason) HandleEmission(string user, string text,
@@ -29,7 +30,7 @@ namespace gamemaster.CommandHandlers.Ledger
                         var (_, amount) = CommandsPartsParse.FindDecimal(parts, 0);
                         if (amount > 0)
                         {
-                            _router.LedgerEmit(userId.Value.id, currency, amount, user, responseUrl);
+                            LedgerActor.Address.Tell(new EmitMessage(userId.Value.id, currency, amount, user, responseUrl));
                             return (true, "Запрос на эмиссию монет прошёл успешно, обрабатываем");
                         }
 

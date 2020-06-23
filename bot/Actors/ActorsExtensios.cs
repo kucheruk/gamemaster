@@ -9,7 +9,6 @@ namespace gamemaster.Actors
     {
         public static void AddActors(this IServiceCollection services)
         {
-            services.AddSingleton<MessageRouter>();
             services.AddSingleton<TotesActor>();
             services.AddSingleton<MessengerActor>();
             services.AddTransient<GamemasterSupervisor>();

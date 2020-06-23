@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Akka.Actor;
+using gamemaster.Actors;
 using gamemaster.CommandHandlers;
 using gamemaster.Messages;
 using gamemaster.Models;
@@ -15,7 +16,6 @@ namespace gamemaster.Extensions
 {
     public class UserToteContextActor : ReceiveActor
     {
-        private readonly MessageRouter _router;
         private readonly CurrentPeriodService _cp;
         private readonly GetToteByIdQuery _getTote;
         private readonly GetUserBalanceQuery _balance;
@@ -26,14 +26,14 @@ namespace gamemaster.Extensions
         private readonly SlackApiWrapper _slack;
         private readonly ILogger<UserToteContextActor> _logger;
 
-        public UserToteContextActor(MessageRouter router, 
+        public UserToteContextActor( 
             CurrentPeriodService cp, 
             GetToteByIdQuery getTote,
             GetUserBalanceQuery balance,
             SlackApiWrapper slack, 
             ILogger<UserToteContextActor> logger)
         {
-            _router = router;
+            
             _cp = cp;
             _getTote = getTote;
             _balance = balance;
@@ -72,7 +72,7 @@ namespace gamemaster.Extensions
                 if (decimal.TryParse(msg.Text, out var amount))
                 {
                     amount = decimal.Round(amount, 2);
-                    _router.LedgerPlaceBet(new TotePlaceBetMessage(_user, _tote, _option.Id,  amount));
+                    TotesActor.Address.Tell(new TotePlaceBetMessage(_user, _tote, _option.Id,  amount));
                     await Self.GracefulStop(TimeSpan.FromMilliseconds(10));
                 }
                 else

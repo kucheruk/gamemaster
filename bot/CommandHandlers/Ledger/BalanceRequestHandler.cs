@@ -1,3 +1,5 @@
+using Akka.Actor;
+using gamemaster.Actors;
 using gamemaster.Config;
 using gamemaster.Messages;
 using Microsoft.Extensions.Options;
@@ -7,11 +9,9 @@ namespace gamemaster.CommandHandlers.Ledger
     public class BalanceRequestHandler
     {
         private readonly IOptions<SlackConfig> _cfg;
-        private readonly MessageRouter _router;
 
-        public BalanceRequestHandler(MessageRouter router, IOptions<SlackConfig> cfg)
+        public BalanceRequestHandler(IOptions<SlackConfig> cfg)
         {
-            _router = router;
             _cfg = cfg;
         }
 
@@ -19,7 +19,7 @@ namespace gamemaster.CommandHandlers.Ledger
             string responseUrl,
             MessageContext context)
         {
-            _router.LedgerBalance(new GetBalanceMessage(user, IsAdmin(user), context, responseUrl));
+            LedgerActor.Address.Tell(new GetBalanceMessage(user, IsAdmin(user), context, responseUrl));
             return (true, "Гоблины проверяют твоё банковское хранилище...");
         }
 

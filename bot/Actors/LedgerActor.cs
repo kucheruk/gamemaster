@@ -21,8 +21,6 @@ namespace gamemaster.Actors
         private readonly EmitCurrencyCommand _emission;
         private readonly GetUserBalanceQuery _getUserBalance;
         private readonly ILogger<LedgerActor> _logger;
-        private readonly MessageRouter _router;
-        private readonly SaveToteReportPointCommand _saveToteReportPoint;
         private readonly SlackApiWrapper _slack;
         private readonly SlackResponseService _slackResponse;
         private readonly TossCurrencyCommand _toss;
@@ -30,22 +28,18 @@ namespace gamemaster.Actors
         public LedgerActor(CurrentPeriodService currentPeriod,
             GetUserBalanceQuery getUserBalance,
             EmitCurrencyCommand emission,
-            MessageRouter router,
             SlackApiWrapper slack,
             SlackResponseService slackResponse,
             TossCurrencyCommand toss,
-            ILogger<LedgerActor> logger,
-            SaveToteReportPointCommand saveToteReportPoint)
+            ILogger<LedgerActor> logger)
         {
             _currentPeriod = currentPeriod;
             _getUserBalance = getUserBalance;
             _emission = emission;
-            _router = router;
             _slack = slack;
             _slackResponse = slackResponse;
             _toss = toss;
             _logger = logger;
-            _saveToteReportPoint = saveToteReportPoint;
             Become(Starting);
         }
 
@@ -286,7 +280,6 @@ namespace gamemaster.Actors
 
         protected override void PreStart()
         {
-            _router.RegisterLedger(Self);
             Address = Self;
             _logger.LogInformation("LEDGER STARTED");
             Self.Tell(MsgTick.Instance);

@@ -10,25 +10,23 @@ namespace gamemaster.Extensions
 {
     public class UserContextsActor : ReceiveActor
     {
-        private readonly MessageRouter _router;
         private readonly SlackApiWrapper _slack;
-        private ILogger<UserContextsActor> _logger;
+        private readonly ILogger<UserContextsActor> _logger;
 
-        public UserContextsActor(MessageRouter router,
+        public UserContextsActor(
             SlackApiWrapper slack,
             ILogger<UserContextsActor> logger)
         {
-            _router = router;
             _slack = slack;
             _logger = logger;
             ReceiveAsync<PlaceBetMessage>(PlaceBetAmount);
             Receive<PlaceBetStartMessage>(StartBetDialog);
             ReceiveAsync<PlaceBetSelectOptionMessage>(SelectNumber);
         }
-
+public static IActorRef Address { get; private set; } 
         protected override void PreStart()
         {
-            _router.RegisterUserContextsActor(Self);
+            Address = Self;
             base.PreStart();
         }
 

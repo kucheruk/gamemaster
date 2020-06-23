@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Akka.Actor;
+using gamemaster.Actors;
 using gamemaster.Messages;
 using gamemaster.Models;
 using gamemaster.Slack;
@@ -11,14 +13,12 @@ namespace gamemaster.CommandHandlers.Ledger
 {
     public class TossACoinHandler
     {
-        private readonly MessageRouter _router;
         private readonly SlackApiWrapper _slack;
         private readonly ILogger<TossACoinHandler> _logger;
 
-        public TossACoinHandler(MessageRouter router, SlackApiWrapper slack,
+        public TossACoinHandler(SlackApiWrapper slack,
             ILogger<TossACoinHandler> logger)
         {
-            _router = router;
             _slack = slack;
             _logger = logger;
         }
@@ -79,7 +79,7 @@ namespace gamemaster.CommandHandlers.Ledger
             if (channelUsers.Length > 1)
             {
                 var msg = new GiveAwayMessage(fromUser, p.Currency, responseUrl, p.Amount, channelUsers, channel, p.Comment);
-                _router.LedgerGiveAway(msg);
+                LedgerActor.Address.Tell(msg);
                 return (true, "Приказали гоблинам раскидать монетки всем пользователям канала...");
             }
 
@@ -94,7 +94,7 @@ namespace gamemaster.CommandHandlers.Ledger
         private (bool success, string reason) HandleTransferToSingleUser(string fromUser, string responseUrl,
             TossRequestParams p)
         {
-            _router.LedgerToss(new TossACoinMessage(fromUser, p.Currency, responseUrl, p.Amount,
+            LedgerActor.Address.Tell(new TossACoinMessage(fromUser, p.Currency, responseUrl, p.Amount,
                 p.UserId, p.Comment));
             return (true, "Запрос на перевод отправлен гоблинам в банк, ожидай ответа");
         }
