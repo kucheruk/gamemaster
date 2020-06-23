@@ -20,30 +20,27 @@ namespace gamemaster.CommandHandlers
 
         public static TossRequestParams FromText(string text)
         {
-            var parts = text.Trim().Split(' ').ToHashSet();
-            if (parts.Count <= 1)
+            var parts = text.Trim().Split(' ').ToArray();
+            if (parts.Length <= 1)
             {
                 return null;
             }
-
             var currency = CommandsPartsParse.FindCurrency(parts, Constants.DefaultCurrency);
-
-            parts.Remove(currency);
-
+            var rest = text.Replace(currency, string.Empty);
             var userId = CommandsPartsParse.FindUserId(parts);
             if (userId.HasValue)
             {
-                parts.Remove(userId.Value.part);
+                rest = rest.Replace(userId.Value.part, string.Empty);
+            }
+            var (amountstr, amount) = CommandsPartsParse.FindDecimal(parts, 0);
+            
+            if (amount > 0)
+            {
+                rest = rest.Replace(amountstr, string.Empty);
             }
 
-            var (amountstr, amount) = CommandsPartsParse.FindDecimal(parts, 0);
-
-            parts.Remove(amountstr);
-
-            var comment = string.Join(' ', parts).Trim();
-
+            var comment = rest.Trim();
             return new TossRequestParams(userId?.id, currency, amount, comment);
-
         }
 
     }

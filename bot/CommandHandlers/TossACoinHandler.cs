@@ -55,7 +55,7 @@ namespace gamemaster.CommandHandlers
                 return await HandleTransferToGroup(fromUser, responseUrl, mctx, p);
             }
 
-            return (false, "И пользователь не указан, и команда не внутри канала... Как-то неочевидно, чего делать").
+            return (false, "И пользователь не указан, и команда не внутри канала... Как-то неочевидно, чего делать");
         }
         
         private async Task<(bool success, string reason)> HandleTransferToGroup(string fromUser, string responseUrl,
