@@ -4,7 +4,8 @@ namespace gamemaster.Messages
     {
         public TossACoinMessage(string fromUser, string currency,
             string responseUrl, decimal amount,
-            string user, string comment)
+            string user, string comment,
+            bool tossAll)
         {
             FromUser = fromUser;
             Currency = currency;
@@ -12,6 +13,7 @@ namespace gamemaster.Messages
             Amount = amount;
             ToUser = user;
             Comment = comment;
+            TossAll = tossAll;
         }
 
         public string FromUser { get; }
@@ -21,5 +23,6 @@ namespace gamemaster.Messages
         public decimal Amount { get; }
         public string ToUser { get; }
         public string Comment { get; }
+        public bool TossAll { get; }
     }
 }

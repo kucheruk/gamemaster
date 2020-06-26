@@ -78,7 +78,7 @@ namespace gamemaster.Actors
             var tote = await _getTote.GetAsync(msg.ToteId);
             if (tote.State != ToteState.Started)
             {
-                await _slack.PostAsync(new MessageToChannel(msg.UserId,
+                MessengerActor.Send(new MessageToChannel(msg.UserId,
                     "Чот не получается завершить тотализатор. А ты случаем не жулик?"));
                 return;
             }
@@ -115,33 +115,36 @@ namespace gamemaster.Actors
         private async Task HandlePlaceBet(TotePlaceBetMessage msg)
         {
             var sw = new Stopwatch();
-            sw.Start();
             var tote = await _getTote.GetAsync(msg.ToteId);
             if (tote.State != ToteState.Started)
             {
-                await _slack.PostAsync(new MessageToChannel(msg.User,
+                MessengerActor.Send(new MessageToChannel(msg.User,
                     "В тотализатор на данном этапе невозможно сделать ставку"));
                 return;
             }
 
             if (string.IsNullOrEmpty(msg.OptionId))
             {
-                await _slack.PostAsync(new MessageToChannel(msg.User,
+                MessengerActor.Send(new MessageToChannel(msg.User,
                     "Чтоб сделать ставку нужно выбрать один вариант исхода."));
                 return;
             }
             
             if (msg.Amount <= 0.01m)
             {
-                await _slack.PostAsync(new MessageToChannel(msg.User,
+                MessengerActor.Send(new MessageToChannel(msg.User,
                     "Мы принимаем только ставки, начиная с нищебродского 0.01"));
                 return;
             }
 
+            
+            sw.Start();
             var resp = await LedgerActor.Address.Ask<List<AccountWithAmount>>(new GetAccountBalanceRequestMessage {UserId = msg.User, Currency = tote.Currency});
+            sw.Stop();
+            _logger.LogInformation($"PlaceBet Took {sw.ElapsedMilliseconds}ms");
             if (resp.Count == 0 || resp[0].Amount < msg.Amount)
             {
-                await _slack.PostAsync(new MessageToChannel(msg.User,
+                MessengerActor.Send(new MessageToChannel(msg.User,
                     $"Печально, но на твоём счёте нет столько {tote.Currency} :("));
                 return;
             }
@@ -150,11 +153,9 @@ namespace gamemaster.Actors
             await _addBetToTote.AddAsync(tote.Id, msg.OptionId, msg.User, msg.Amount);
             LedgerActor.Address.Tell(new ValidatedTransferMessage(msg.User, tote.AccountId(), msg.Amount, tote.Currency,
                 "Ставка на тотализатор", true));
-            _logger.LogInformation($"PlaceBet Took {sw.ElapsedMilliseconds}ms");
-            await _slack.PostAsync(new MessageToChannel(msg.User,
+            MessengerActor.Send(new MessageToChannel(msg.User,
                 $"Ваша ставка в количестве {tote.Currency}{msg.Amount} отправлена на счёт тотализатора!"));
             MessengerActor.Address.Tell(new UpdateToteReportsMessage(tote.Id));
-            sw.Stop();
         }
     }
 }

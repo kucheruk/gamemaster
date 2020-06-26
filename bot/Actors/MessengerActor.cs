@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Akka.Actor;
 using gamemaster.CommandHandlers;
@@ -24,9 +25,19 @@ namespace gamemaster.Actors
             _toteReports = toteReports;
             _slack = slack;
             _getTote = getTote;
+            ReceiveAsync<MessageToChannel>(SendToSlackChannel);
             ReceiveAsync<UpdateToteReportsMessage>(UpdateToteReports);
             ReceiveAsync<ToteWinnersLoosersReportMessage>(ReportWinnersLoosersInSlack);
+        }
 
+        private async Task SendToSlackChannel(MessageToChannel msg)
+        {
+            await _slack.PostAsync(msg);
+        }
+
+        public static void Send(MessageToChannel msg)
+        {
+            Address.Tell(msg);
         }
 
         private async Task ReportWinnersLoosersInSlack(ToteWinnersLoosersReportMessage msg)
@@ -35,9 +46,9 @@ namespace gamemaster.Actors
             var tote = await _getTote.GetAsync(msg.ToteId);
             var toteReport = LongMessagesToUser.ToteWinners(tote, msg);
 
-            foreach (var report in reports)
+            foreach (var cid in reports.Select(a => a.ChannelId).Distinct())
             {
-                await _slack.PostAsync(new MessageToChannel(report.ChannelId, toteReport));
+                await _slack.PostAsync(new MessageToChannel(cid, toteReport));
             }
         }
 

@@ -7,20 +7,24 @@ namespace gamemaster.Models
     {
         public string UserId { get; }
         public string Currency { get; }
+        public bool TossAll { get; }
         public decimal Amount { get; }
         public string Comment { get; }
 
         private TossRequestParams(string userId, string currency,
-            in decimal amount, string comment)
+            in decimal amount, string comment,
+            bool all)
         {
             UserId = userId;
             Currency = currency;
             Amount = amount;
             Comment = comment;
+            TossAll = all;
         }
 
         public static TossRequestParams FromText(string text)
         {
+            var all = false;
             var parts = text.Trim().Split(' ').ToArray();
             if (parts.Length <= 1)
             {
@@ -39,9 +43,16 @@ namespace gamemaster.Models
             {
                 rest = rest.Replace(amountstr, string.Empty);
             }
+            else
+            {
+                if (parts.Any(a => a == "*"))
+                {
+                    all = true;
+                }
+            }
 
             var comment = rest.Trim();
-            return new TossRequestParams(userId?.id, currency, amount, comment);
+            return new TossRequestParams(userId?.id, currency, amount, comment, all);
         }
 
     }

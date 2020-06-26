@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using gamemaster.Extensions;
 using gamemaster.Models;
@@ -22,8 +23,19 @@ namespace gamemaster.Queries.Tote
             var agg = ama.AggregateOperations();
             var proportions = agg.Select(a => new AccountWithAmount(a.Account, a.Amount / winningBetsSum));
             AccountWithAmount[] proportionalReward = proportions.Select(a =>
-                new AccountWithAmount(a.Account, decimal.Round(a.Amount * winningFund, 2))).ToArray();
+                new AccountWithAmount(a.Account, a.Amount.Trim())).ToArray();
+            
+            ownerPercent = AdjustRemainderToOwner(proportionalReward, winningFund, ownerPercent);
+
             return new FinishedToteRewards(proportionalReward, winningOption, ownerPercent);
+        }
+
+        private static decimal AdjustRemainderToOwner(AccountWithAmount[] proportionalReward, decimal winningFund,
+            decimal ownerPercent)
+        {
+            var totalReward = proportionalReward.Sum(a => a.Amount); // calc remainder from rounding decimals 
+            var remainder = winningFund - totalReward;
+            return ownerPercent + remainder;
         }
     }
 }

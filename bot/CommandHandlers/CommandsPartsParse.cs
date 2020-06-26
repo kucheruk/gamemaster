@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using gamemaster.Extensions;
 
 namespace gamemaster.CommandHandlers
 {
@@ -13,7 +14,7 @@ namespace gamemaster.CommandHandlers
             var p = parts.FirstOrDefault(a => decimal.TryParse(a, out var v) && v > 0);
             if (p != null)
             {
-                return (p, decimal.Round(decimal.Parse(p), 2));
+                return (p, decimal.Parse(p).Trim());
             }
 
             return (string.Empty, def);

@@ -40,7 +40,7 @@ namespace gamemaster.CommandHandlers.Ledger
                 return (false, "Не смогли определить какие именно монетки переводить");
             }
 
-            if (p.Amount <= 0)
+            if (p.Amount <= 0 && !p.TossAll)
             {
                 return (false, "Не смогли найти в команде сколько монет переводим");
             }
@@ -78,7 +78,7 @@ namespace gamemaster.CommandHandlers.Ledger
 
             if (channelUsers.Length > 1)
             {
-                var msg = new GiveAwayMessage(fromUser, p.Currency, responseUrl, p.Amount, channelUsers, channel, p.Comment);
+                var msg = new GiveAwayMessage(fromUser, p.Currency, responseUrl, p.Amount, channelUsers, channel, p.Comment, p.TossAll);
                 LedgerActor.Address.Tell(msg);
                 return (true, "Приказали гоблинам раскидать монетки всем пользователям канала...");
             }
@@ -95,7 +95,7 @@ namespace gamemaster.CommandHandlers.Ledger
             TossRequestParams p)
         {
             LedgerActor.Address.Tell(new TossACoinMessage(fromUser, p.Currency, responseUrl, p.Amount,
-                p.UserId, p.Comment));
+                p.UserId, p.Comment, p.TossAll));
             return (true, "Запрос на перевод отправлен гоблинам в банк, ожидай ответа");
         }
     }

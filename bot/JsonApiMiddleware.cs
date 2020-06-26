@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -110,11 +111,15 @@ namespace gamemaster
                                 }
                                 else if (parts.TryGetValue("payload", out var payload))
                                 {
+                                    var sw = new Stopwatch();
+                                    sw.Start();
                                     var pl = DeserializePayload(payload);
                                     _logger.LogInformation("Got pl={Payload}", JsonConvert.SerializeObject(pl));
                                     HandleInteraction(pl);
                                     context.Response.StatusCode = 200;
-                                    await context.Response.WriteAsync("mkay!");
+                                    await context.Response.CompleteAsync();
+                                    sw.Stop();
+                                    _logger.LogWarning("Interaction handled: {ДС}", sw.ElapsedMilliseconds);
                                 }
                             }
                         }
@@ -154,7 +159,7 @@ namespace gamemaster
                                 var toteId = parts[1];
                                 var userId = pl.User.Id;
                                 var optId = option.SelectedOption.Value;
-                                var am = decimal.Round(decimal.Parse(amount.Value), 2, MidpointRounding.ToZero);
+                                var am =  decimal.Parse(amount.Value).Trim();
                                 TotesActor.Address.Tell(new TotePlaceBetMessage(userId, toteId, optId, am, pl?.Channel?.Id));
                             }
                         }

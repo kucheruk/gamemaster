@@ -5,7 +5,7 @@ namespace gamemaster.CommandHandlers.Ledger
         public GiveAwayMessage(string fromUser, string currency,
             string responseUrl, in decimal amount,
             string[] users, MessageContext channel,
-            string comment)
+            string comment, bool tossAll)
         {
             FromUser = fromUser;
             Currency = currency;
@@ -14,6 +14,7 @@ namespace gamemaster.CommandHandlers.Ledger
             Users = users;
             Channel = channel;
             Comment = comment;
+            TossAll = tossAll;
         }
 
         public string FromUser { get; }
@@ -23,5 +24,6 @@ namespace gamemaster.CommandHandlers.Ledger
         public string[] Users { get; }
         public MessageContext Channel { get; }
         public string Comment { get; }
+        public bool TossAll { get; }
     }
 }

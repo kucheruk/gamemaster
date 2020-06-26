@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using gamemaster.Extensions;
 using gamemaster.Messages;
 using gamemaster.Models;
 using gamemaster.Slack;
@@ -264,7 +265,7 @@ namespace gamemaster.CommandHandlers
 
         public static SlackDialogModel ToteDialog(Models.Tote toteValue, in decimal balanceAmount)
         {
-            var amount = decimal.Round(balanceAmount, 2, MidpointRounding.ToZero);
+            var amount = balanceAmount.Trim();
             var d = new SlackDialogModel("Приём ставок!", "Ставлю!", "place_bet_dialog:" + toteValue.Id);
             var options = toteValue.Options.ToDictionary(a => a.Id, a => a.Name);
             d.Blocks = new SlackDialogBlock[]
