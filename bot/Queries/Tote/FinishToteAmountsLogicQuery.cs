@@ -21,9 +21,11 @@ namespace gamemaster.Queries.Tote
 
             var ama = winningBets.Select(a => new AccountWithAmount(new Account(a.User, tote.Currency), a.Amount));
             var agg = ama.AggregateOperations();
-            var proportions = agg.Select(a => new AccountWithAmount(a.Account, a.Amount / winningBetsSum));
-            AccountWithAmount[] proportionalReward = proportions.Select(a =>
-                new AccountWithAmount(a.Account, a.Amount.Trim())).ToArray();
+            
+            // var proportions = agg.Select(a => new AccountWithAmount(a.Account, a.Amount / winningBetsSum));
+            
+            AccountWithAmount[] proportionalReward = agg.Select(a =>
+                new AccountWithAmount(a.Account, ((a.Amount * winningFund) / winningBetsSum).Trim())).ToArray();
             
             ownerPercent = AdjustRemainderToOwner(proportionalReward, winningFund, ownerPercent);
 
