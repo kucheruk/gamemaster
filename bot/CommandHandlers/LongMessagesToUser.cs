@@ -128,7 +128,7 @@ namespace gamemaster.CommandHandlers
             var totalSum = allBets?.Sum(a => a.Amount);
             var total = decimal.Round(totalSum.GetValueOrDefault(), 2);
             sb
-                .AppendLine($"==ТОТАЛИЗАТОР *{tote.Description}* ==")
+                .AppendLine($"==ТОТАЛИЗАТОР от <@{tote.Owner}>: *{tote.Description}* ==")
                 .AppendLine(ToteStatus(tote))
                 .Append($"{participantsCount} {ParticipantsDecl(participantsCount)}, ")
                 .AppendLine($"{betsCount} {Declination(betsCount, "ставка", "ставки", "ставок")}")
