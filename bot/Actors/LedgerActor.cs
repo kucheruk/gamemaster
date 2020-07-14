@@ -215,7 +215,7 @@ namespace gamemaster.Actors
         private async Task FormatAndReplyWithUserBalance(GetBalanceMessage msg, List<AccountWithAmount> resp)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("У тебя на счету:");
+            sb.AppendLine($"<@{msg.UserId}>. У тебя на счету:");
             foreach (var v in resp.OrderByDescending(a => a.Amount))
             {
                 if (v.Amount != 0)
