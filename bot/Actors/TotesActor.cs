@@ -76,7 +76,7 @@ namespace gamemaster.Actors
         private async Task HandleToteFinish(ToteFinishedMessage msg)
         {
             var tote = await _getTote.GetAsync(msg.ToteId);
-            if (tote.State != ToteState.Started)
+            if (tote.State != ToteState.Started && tote.State != ToteState.Closed)
             {
                 MessengerActor.Send(new MessageToChannel(msg.UserId,
                     "Чот не получается завершить тотализатор. А ты случаем не жулик?"));
@@ -122,7 +122,12 @@ namespace gamemaster.Actors
                     "В тотализатор на данном этапе невозможно сделать ставку"));
                 return;
             }
-
+            if (msg.User == tote.Owner)
+            {
+                MessengerActor.Send(new MessageToChannel(msg.User,
+                    "Не разрешать организатору ставить на своём тотализаторе нас научил Рррроман."));
+                return;
+            }
             if (string.IsNullOrEmpty(msg.OptionId))
             {
                 MessengerActor.Send(new MessageToChannel(msg.User,

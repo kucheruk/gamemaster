@@ -47,12 +47,12 @@ namespace gamemaster.Extensions
             var option = _toteValue.Options.FirstOrDefault(a => a.Id == msg.OptionId);
             if (option == null)
             {
-                await _slack.PostAsync(new MessageToChannel(_user,
+                MessengerActor.Send(new MessageToChannel(_user,
                     $"В этот тотализаторе не найден вариант с id {msg.OptionId}"));
             }
             else
             {
-                await _slack.PostAsync(new MessageToChannel(_user,
+                MessengerActor.Send(new MessageToChannel(_user,
                     $"Сохранили номер выбранного тобою варианта: [{option.Number}] ({option.Name})\nТеперь напиши мне количество монет, которые готов поставить. Просто числом."));
             }
         }

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Akka.Actor;
@@ -15,6 +16,8 @@ namespace gamemaster.Actors
         private readonly GetToteReportsQuery _toteReports;
         private readonly GetToteByIdQuery _getTote;
         private readonly SlackApiWrapper _slack;
+        private DateTime _lastSend;
+        private readonly TimeSpan _sendThreshold = TimeSpan.FromSeconds(1);
 
         public MessengerActor( 
             ILogger<MessengerActor> logger,
@@ -32,7 +35,16 @@ namespace gamemaster.Actors
 
         private async Task SendToSlackChannel(MessageToChannel msg)
         {
-            await _slack.PostAsync(msg);
+            if (DateTime.Now - _lastSend > _sendThreshold)
+            {
+                _lastSend = DateTime.Now;
+                await _slack.PostAsync(msg);
+            }
+            else
+            {
+                Self.Tell(msg);
+                await Task.Delay(_sendThreshold);
+            }
         }
 
         public static void Send(MessageToChannel msg)
@@ -48,7 +60,7 @@ namespace gamemaster.Actors
 
             foreach (var cid in reports.Select(a => a.ChannelId).Distinct())
             {
-                await _slack.PostAsync(new MessageToChannel(cid, toteReport));
+                Self.Tell(new MessageToChannel(cid, toteReport));
             }
         }
 

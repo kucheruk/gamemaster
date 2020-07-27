@@ -148,7 +148,7 @@ namespace gamemaster.Actors
                     reply += $" с комментарием {msg.Comment}";
                 }
 
-                await _slack.PostAsync(new MessageToChannel(msg.FromUser,
+                MessengerActor.Send(new MessageToChannel(msg.FromUser,
                     $"Ваш перевод на {msg.Currency}{amount} выполнен. {msg.Comment}"));
                 await _slackResponse.ResponseWithText(msg.ResponseUrl, reply);
             }
@@ -178,7 +178,7 @@ namespace gamemaster.Actors
                     .AppendLine("`/toss` - передать другому пользователю")
                     .AppendLine("`/tote` - сказочно разбогатеть с тотализатором")
                     .AppendLine("Всё в твоих руках!");
-                await _slack.PostAsync(new MessageToChannel(msg.ToAccount, hoho.ToString()));
+                MessengerActor.Send(new MessageToChannel(msg.ToAccount, hoho.ToString()));
             }
         }
 

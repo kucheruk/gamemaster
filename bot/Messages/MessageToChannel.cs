@@ -8,9 +8,7 @@ namespace gamemaster.Messages
             Message = message;
         }
 
-        public bool Ephemeral { get; }
         public string ChannelId { get; }
         public string Message { get; }
-        public string UserId { get; set; }
     }
 }

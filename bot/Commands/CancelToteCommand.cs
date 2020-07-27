@@ -20,7 +20,8 @@ namespace gamemaster.Commands
             var where = Builders<Tote>.Filter;
             var upd = Builders<Tote>.Update;
             await _ms.Totes.UpdateOneAsync(
-                where.Eq(a => a.Id, toteId) & where.Ne(a => a.State, ToteState.Finished) & where.Ne(a => a.State, ToteState.Cancelled),
+                where.Eq(a => a.Id, toteId) &
+                where.Ne(a => a.State, ToteState.Finished) & where.Ne(a => a.State, ToteState.Cancelled),
                 upd.Set(a => a.State, ToteState.Cancelled)
                     .Set(a => a.CancelledOn, DateTime.Now));
         }

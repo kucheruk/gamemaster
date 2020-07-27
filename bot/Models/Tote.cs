@@ -27,6 +27,7 @@ namespace gamemaster.Models
         public DateTime? FinishedOn { get; set; }
         public DateTime? CancelledOn { get; set; }
         public DateTime? StartedOn { get; set; }
+        public DateTime? ClosedOn { get; set; }
 
         public string AccountId()
         {

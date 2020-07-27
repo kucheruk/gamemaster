@@ -54,7 +54,7 @@ namespace gamemaster.CommandHandlers.Tote
 
             await _startTote.StartAsync(tote.Id);
             await _slackResponse.ResponseWithText(cmd.ResponseUrl,
-                "Тотализатор запущен. Самое время прорекламировать его в каналах! Используй `/tote`", true);
+                "Тотализатор запущен. Самое время прорекламировать его в каналах! Используй `/tote`. Потом закрывай приём ставок командой `/tote close`", true);
             return (true, string.Empty);
         }
     }

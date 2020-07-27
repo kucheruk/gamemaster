@@ -268,7 +268,7 @@ namespace gamemaster
 
                 var txt = @event["text"]?.ToString();
                 var author = @event["user"]?.ToString();
-                await _slack.PostAsync(new MessageToChannel(author, $"echo {txt}"));
+                MessengerActor.Send(new MessageToChannel(author, $"echo {txt}"));
             }
         }
 

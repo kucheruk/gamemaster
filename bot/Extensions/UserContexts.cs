@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Akka.Actor;
 using Akka.DI.Core;
+using gamemaster.Actors;
 using gamemaster.Messages;
 using gamemaster.Slack;
 using Microsoft.Extensions.Logging;
@@ -45,7 +46,7 @@ public static IActorRef Address { get; private set; }
             var child = Context.Child($"bet_{msg.UserId}");
             if (child.IsNobody())
             {
-                await _slack.PostAsync(new MessageToChannel(msg.UserId, "Время выбора деталей ставки истекло. Нажми-ка кнопку для участия в тотализаторе ещё раз."));
+                MessengerActor.Send(new MessageToChannel(msg.UserId, "Время выбора деталей ставки истекло. Нажми-ка кнопку для участия в тотализаторе ещё раз."));
             }
             else
             {

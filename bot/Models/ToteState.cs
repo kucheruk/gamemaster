@@ -4,6 +4,7 @@ namespace gamemaster.Models
     {
         Created,
         Started,
+        Closed,
         Cancelled,
         Finished
     }

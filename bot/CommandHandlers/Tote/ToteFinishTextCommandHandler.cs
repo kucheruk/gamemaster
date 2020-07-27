@@ -31,9 +31,9 @@ namespace gamemaster.CommandHandlers.Tote
                 return (false, "Чтоб завершить тотализатор, надо его сначала создать");
             }
 
-            if (tote.State != ToteState.Started)
+            if (tote.State != ToteState.Started || tote.State != ToteState.Closed)
             {
-                return (false, "Завершить можно только запущенный тотализатор");
+                return (false, "Завершить можно только закрытый или запущенный тотализатор");
             }
 
             if (tote.Owner != cmd.UserId)
