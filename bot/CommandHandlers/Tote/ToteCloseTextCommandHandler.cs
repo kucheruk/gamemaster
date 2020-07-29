@@ -1,5 +1,8 @@
 using System.Threading.Tasks;
+using Akka.Actor;
+using gamemaster.Actors;
 using gamemaster.Commands;
+using gamemaster.Messages;
 using gamemaster.Models;
 using gamemaster.Queries.Tote;
 using gamemaster.Services;
@@ -36,7 +39,7 @@ namespace gamemaster.CommandHandlers.Tote
                     "Чтобы закрыть тотализатор, нужно его сначала создать :) например: `/tote new :coin: Кто своровал суп?`");
             }
 
-            if (tote.State != ToteState.Started)
+            if (tote.State != ToteState.Started && tote.State != ToteState.Closed)
             {
                 return (false, "Закрыть можно только запущенный тотализатор");
             }
@@ -49,6 +52,7 @@ namespace gamemaster.CommandHandlers.Tote
             await _startTote.CloseAsync(tote.Id);
             await _slackResponse.ResponseWithText(cmd.ResponseUrl,
                 "Приём ставок закрыт! Теперь ожидай информации и закрывай тотализатор командой `/tote finish`", true);
+            MessengerActor.Address.Tell(new UpdateToteReportsMessage(tote.Id));
             return (true, string.Empty);
         }
     }
