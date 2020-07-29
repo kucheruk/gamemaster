@@ -11,8 +11,8 @@ namespace gamemaster.Extensions
 {
     public class UserContextsActor : ReceiveActor
     {
-        private readonly SlackApiWrapper _slack;
         private readonly ILogger<UserContextsActor> _logger;
+        private readonly SlackApiWrapper _slack;
 
         public UserContextsActor(
             SlackApiWrapper slack,
@@ -23,7 +23,9 @@ namespace gamemaster.Extensions
             Receive<PlaceBetStartMessage>(StartBetDialog);
             ReceiveAsync<PlaceBetSelectOptionMessage>(SelectNumber);
         }
-public static IActorRef Address { get; private set; } 
+
+        public static IActorRef Address { get; private set; }
+
         protected override void PreStart()
         {
             Address = Self;
@@ -38,9 +40,10 @@ public static IActorRef Address { get; private set; }
             {
                 child = Context.ActorOf(Context.DI().Props<UserToteContextActor>(), name);
             }
+
             child.Forward(msg);
         }
-        
+
         private async Task<bool> SelectNumber(PlaceBetSelectOptionMessage msg)
         {
             var child = Context.Child($"bet_{msg.UserId}");
@@ -55,6 +58,7 @@ public static IActorRef Address { get; private set; }
 
             return true;
         }
+
         protected override void PreRestart(Exception reason, object message)
         {
             _logger.LogError(reason, "Error");
