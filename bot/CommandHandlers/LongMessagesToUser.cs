@@ -133,6 +133,7 @@ namespace gamemaster.CommandHandlers
                 .Append($"{participantsCount} {ParticipantsDecl(participantsCount)}, ")
                 .AppendLine($"{betsCount} {Declination(betsCount, "ставка", "ставки", "ставок")}")
                 .AppendLine();
+            
             foreach (var option in tote.Options)
             {
                 AddToteOption(option, tote, sb);
@@ -184,6 +185,8 @@ namespace gamemaster.CommandHandlers
                     return "Завершён";
                 case ToteState.Started:
                     return "Открыт приём ставок!";
+                case ToteState.Closed:
+                    return "ПРИЁМ СТАВОК ЗАКРЫТ, ждём результатов";
             }
 
             return "Ошибка, да";
