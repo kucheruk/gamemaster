@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using Akka.Actor;
@@ -24,79 +22,64 @@ using Newtonsoft.Json.Linq;
 
 namespace gamemaster
 {
-    public static class HttpContextExtensions
+    public abstract class SlackJsonHandler
     {
-        public static async Task<string> ReadRequestBodyAstString(this HttpContext ctx)
-        {
-            var request = ctx.Request;
-            if (!request.Body.CanSeek)
-            {
-                request.EnableBuffering();
-            }
-            request.Body.Seek(0, SeekOrigin.Begin);
-            var buffer = new byte[Convert.ToInt32(request.ContentLength)];
-            await request.Body.ReadAsync(buffer, 0, buffer.Length);
-            return Encoding.UTF8.GetString(buffer);
-        }
+        
+        public abstract Task<bool> Handle(JObject rq, HttpResponse response);
     }
-    
-    public class CheckSlackSignatureMiddleware
+
+    public class SlackUrlVerificationHandler : SlackJsonHandler
     {
-        private readonly RequestDelegate _next;
-        private readonly SlackRequestSignature _slackSignature;
+        private readonly IOptions<SlackConfig> _cfg;
 
-        public CheckSlackSignatureMiddleware(RequestDelegate next, SlackRequestSignature slackSignature)
+        public SlackUrlVerificationHandler(IOptions<SlackConfig> cfg)
         {
-            _next = next;
-            _slackSignature = slackSignature;
+            _cfg = cfg;
         }
 
-        public async Task Invoke(HttpContext context)
+        public override async Task<bool> Handle(JObject rq, HttpResponse response)
         {
-            var request = context.Request;
-            var bodyAsText = await context.ReadRequestBodyAstString();
-            if (SignatureKeyIsValid(bodyAsText, request))
+            if (rq["type"]?.ToString() != "url_verification")
             {
-                await _next(context);
+                return false;
             }
-            else
+
+            await ResponseChallenge(response, rq["challenge"]?.ToString(),
+                rq["token"]?.ToString());
+            return true;
+        }
+        
+        private async Task ResponseChallenge(HttpResponse resp, string challenge,
+            string token)
+        {
+            if (_cfg.Value.VerificationToken == token)
             {
-                context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
-                await context.Response.WriteAsync("{\"error\":\"signature_invalid\"}");
+                resp.StatusCode = 200;
+                await resp.StartAsync();
+                await resp.WriteAsync(challenge);
             }
         }
 
-        private bool SignatureKeyIsValid(string bodyAsText, HttpRequest request)
-        {
-            if (request.Headers.TryGetValue("X-Slack-Request-Timestamp", out var timestamp))
-            {
-                if (request.Headers.TryGetValue("X-Slack-Signature", out var signature))
-                {
-                    return _slackSignature.Validate(bodyAsText, timestamp, signature);
-                }
-            }
-            return false;
-        }
     }
     
     public class JsonApiMiddleware
     {
         private readonly BalanceRequestHandler _balanceHandler;
-        private readonly IOptions<SlackConfig> _cfg;
+        private readonly IEnumerable<SlackJsonHandler> _jsonHandlers;
         private readonly EmissionRequestHandler _emissionHandler;
         private readonly ILogger<JsonApiMiddleware> _logger;
         private readonly TossACoinHandler _tossHandler;
         private readonly ToteRequestHandler _toteHandler;
 
         public JsonApiMiddleware(RequestDelegate _,
-            IOptions<SlackConfig> cfg,
+            IEnumerable<SlackJsonHandler> jsonHandlers,
             EmissionRequestHandler emissionHandler,
             ILogger<JsonApiMiddleware> logger,
             BalanceRequestHandler balanceHandler,
             TossACoinHandler tossHandler,
             ToteRequestHandler toteHandler)
         {
-            _cfg = cfg;
+            _jsonHandlers = jsonHandlers;
             _emissionHandler = emissionHandler;
             _logger = logger;
             _balanceHandler = balanceHandler;
@@ -114,21 +97,14 @@ namespace gamemaster
                 if (mediaType == "application/json")
                 {
                     var rq = JObject.Parse(bodyAsText);
-                    if (rq["type"]?.ToString() == "url_verification")
+                    foreach (var jsonHandler in _jsonHandlers)
                     {
-                        await ResponseChallenge(context.Response, rq["challenge"]?.ToString(),
-                            rq["token"]?.ToString());
-                        return;
-                    }
-
-                    if (rq.ContainsKey("event"))
-                    {
-                        var e = rq["event"];
-                        if (e?["type"]?.ToString() == "message")
+                        if (await jsonHandler.Handle(rq, context.Response))
                         {
                             return;
                         }
                     }
+
 
                     if (rq["type"]?.ToString() == "event_callback")
                     {
@@ -316,15 +292,5 @@ namespace gamemaster
             throw new InvalidDataException("can't determine channel type and id");
         }
 
-        private async Task ResponseChallenge(HttpResponse resp, string challenge,
-            string token)
-        {
-            if (_cfg.Value.VerificationToken == token)
-            {
-                resp.StatusCode = 200;
-                await resp.StartAsync();
-                await resp.WriteAsync(challenge);
-            }
-        }
     }
 }
