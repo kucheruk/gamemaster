@@ -41,6 +41,7 @@ namespace gamemaster
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseMiddleware<CheckSlackSignatureMiddleware>();
             app.UseMiddleware<JsonApiMiddleware>();
         }
     }

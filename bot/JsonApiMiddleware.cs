@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
@@ -23,35 +24,84 @@ using Newtonsoft.Json.Linq;
 
 namespace gamemaster
 {
+    public static class HttpContextExtensions
+    {
+        public static async Task<string> ReadRequestBodyAstString(this HttpContext ctx)
+        {
+            var request = ctx.Request;
+            if (!request.Body.CanSeek)
+            {
+                request.EnableBuffering();
+            }
+            request.Body.Seek(0, SeekOrigin.Begin);
+            var buffer = new byte[Convert.ToInt32(request.ContentLength)];
+            await request.Body.ReadAsync(buffer, 0, buffer.Length);
+            return Encoding.UTF8.GetString(buffer);
+        }
+    }
+    
+    public class CheckSlackSignatureMiddleware
+    {
+        private readonly RequestDelegate _next;
+        private readonly SlackRequestSignature _slackSignature;
+
+        public CheckSlackSignatureMiddleware(RequestDelegate next, SlackRequestSignature slackSignature)
+        {
+            _next = next;
+            _slackSignature = slackSignature;
+        }
+
+        public async Task Invoke(HttpContext context)
+        {
+            var request = context.Request;
+            var bodyAsText = await context.ReadRequestBodyAstString();
+            if (SignatureKeyIsValid(bodyAsText, request))
+            {
+                await _next(context);
+            }
+            else
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+                await context.Response.WriteAsync("{\"error\":\"signature_invalid\"}");
+            }
+        }
+
+        private bool SignatureKeyIsValid(string bodyAsText, HttpRequest request)
+        {
+            if (request.Headers.TryGetValue("X-Slack-Request-Timestamp", out var timestamp))
+            {
+                if (request.Headers.TryGetValue("X-Slack-Signature", out var signature))
+                {
+                    return _slackSignature.Validate(bodyAsText, timestamp, signature);
+                }
+            }
+            return false;
+        }
+    }
+    
     public class JsonApiMiddleware
     {
         private readonly BalanceRequestHandler _balanceHandler;
         private readonly IOptions<SlackConfig> _cfg;
         private readonly EmissionRequestHandler _emissionHandler;
         private readonly ILogger<JsonApiMiddleware> _logger;
-        private readonly SlackRequestSignature _slackSignature;
         private readonly TossACoinHandler _tossHandler;
         private readonly ToteRequestHandler _toteHandler;
-        private readonly SlackApiWrapper _slack;
 
         public JsonApiMiddleware(RequestDelegate _,
             IOptions<SlackConfig> cfg,
             EmissionRequestHandler emissionHandler,
-            SlackRequestSignature slackSignature,
             ILogger<JsonApiMiddleware> logger,
             BalanceRequestHandler balanceHandler,
             TossACoinHandler tossHandler,
-            ToteRequestHandler toteHandler,
-            SlackApiWrapper slack)
+            ToteRequestHandler toteHandler)
         {
             _cfg = cfg;
             _emissionHandler = emissionHandler;
-            _slackSignature = slackSignature;
             _logger = logger;
             _balanceHandler = balanceHandler;
             _tossHandler = tossHandler;
             _toteHandler = toteHandler;
-            _slack = slack;
         }
 
         public async Task Invoke(HttpContext context)
@@ -59,70 +109,57 @@ namespace gamemaster
             try
             {
                 var request = context.Request;
-                request.EnableBuffering();
-                var bodyAsText = await ReadRequestAsString(request);
+                var bodyAsText = await context.ReadRequestBodyAstString();
                 var mediaType = GetMediaType(request);
-                _logger.LogInformation("mime={MediaType}, body={Body}", mediaType, bodyAsText);
-                if (request.Headers.TryGetValue("X-Slack-Request-Timestamp", out var timestamp))
+                if (mediaType == "application/json")
                 {
-                    if (request.Headers.TryGetValue("X-Slack-Signature", out var signature))
+                    var rq = JObject.Parse(bodyAsText);
+                    if (rq["type"]?.ToString() == "url_verification")
                     {
-                        var keyValid = _slackSignature.Validate(bodyAsText, timestamp, signature);
-                        if (keyValid)
+                        await ResponseChallenge(context.Response, rq["challenge"]?.ToString(),
+                            rq["token"]?.ToString());
+                        return;
+                    }
+
+                    if (rq.ContainsKey("event"))
+                    {
+                        var e = rq["event"];
+                        if (e?["type"]?.ToString() == "message")
                         {
-                            if (mediaType == "application/json")
-                            {
-                                var rq = JObject.Parse(bodyAsText);
-                                if (rq["type"]?.ToString() == "url_verification")
-                                {
-                                    await ResponseChallenge(context.Response, rq["challenge"]?.ToString(),
-                                        rq["token"]?.ToString());
-                                    return;
-                                }
-
-                                if (rq.ContainsKey("event"))
-                                {
-                                    var e = rq["event"];
-                                    if (e?["type"]?.ToString() == "message")
-                                    {
-                                        return;
-                                    }
-                                }
-
-                                var uri = request.Path;
-                                if (rq["type"]?.ToString() == "event_callback")
-                                {
-                                    await HandleEventAsync(context.Response, rq);
-                                }
-                            }
-                            else if (mediaType == "application/x-www-form-urlencoded")
-                            {
-                                var parts = bodyAsText.Split("&").Select(a => a.Split("="))
-                                    .ToDictionary(a => a[0], a => HttpUtility.UrlDecode(a[1]));
-                                if (parts.TryGetValue("command", out var command) &&
-                                    parts.TryGetValue("user_id", out var user) &&
-                                    parts.TryGetValue("text", out var text) &&
-                                    parts.TryGetValue("response_url", out var responseUrl))
-                                {
-                                    var mc = GetMessageContext(parts);
-                                    var resp = await HandleCommandAsync(user, command, text, mc, responseUrl);
-                                    context.Response.StatusCode = 200;
-                                    await context.Response.WriteAsync(resp.reason);
-                                }
-                                else if (parts.TryGetValue("payload", out var payload))
-                                {
-                                    var sw = new Stopwatch();
-                                    sw.Start();
-                                    var pl = DeserializePayload(payload);
-                                    _logger.LogInformation("Got pl={Payload}", JsonConvert.SerializeObject(pl));
-                                    HandleInteraction(pl);
-                                    context.Response.StatusCode = 200;
-                                    await context.Response.CompleteAsync();
-                                    sw.Stop();
-                                    _logger.LogWarning("Interaction handled: {ДС}", sw.ElapsedMilliseconds);
-                                }
-                            }
+                            return;
                         }
+                    }
+
+                    if (rq["type"]?.ToString() == "event_callback")
+                    {
+                        await HandleEventAsync(context.Response, rq);
+                    }
+                }
+                else if (mediaType == "application/x-www-form-urlencoded")
+                {
+                    var parts = bodyAsText.Split("&").Select(a => a.Split("="))
+                        .ToDictionary(a => a[0], a => HttpUtility.UrlDecode(a[1]));
+                    if (parts.TryGetValue("command", out var command) &&
+                        parts.TryGetValue("user_id", out var user) &&
+                        parts.TryGetValue("text", out var text) &&
+                        parts.TryGetValue("response_url", out var responseUrl))
+                    {
+                        var mc = GetMessageContext(parts);
+                        var resp = await HandleCommandAsync(user, command, text, mc, responseUrl);
+                        context.Response.StatusCode = 200;
+                        await context.Response.WriteAsync(resp.reason);
+                    }
+                    else if (parts.TryGetValue("payload", out var payload))
+                    {
+                        var sw = new Stopwatch();
+                        sw.Start();
+                        var pl = DeserializePayload(payload);
+                        _logger.LogInformation("Got pl={Payload}", JsonConvert.SerializeObject(pl));
+                        HandleInteraction(pl);
+                        context.Response.StatusCode = 200;
+                        await context.Response.CompleteAsync();
+                        sw.Stop();
+                        _logger.LogWarning("Interaction handled: {ДС}", sw.ElapsedMilliseconds);
                     }
                 }
             }
@@ -243,15 +280,6 @@ namespace gamemaster
         private static StringSegment GetMediaType(HttpRequest request)
         {
             return request.GetTypedHeaders().ContentType.MediaType;
-        }
-
-        private static async Task<string> ReadRequestAsString(HttpRequest request)
-        {
-            request.Body.Seek(0, SeekOrigin.Begin);
-            var buffer = new byte[Convert.ToInt32(request.ContentLength)];
-            await request.Body.ReadAsync(buffer, 0, buffer.Length);
-            var bodyAsText = Encoding.UTF8.GetString(buffer);
-            return bodyAsText;
         }
 
         private async Task HandleEventAsync(HttpResponse resp, JObject rq)
