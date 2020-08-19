@@ -14,8 +14,15 @@ namespace gamemaster.Extensions
             services.AddSingleton<SlackJsonHandler, SlackUrlVerificationHandler>();
             services.AddSingleton<SlackJsonHandler, SlackMessageEmptyHandler>();
             services.AddSingleton<SlackJsonHandler, SlackEventCallbackHandler>();
+            
             services.AddSingleton<SlackFormHandler, SlackCommandFormHandler>();
             services.AddSingleton<SlackFormHandler, SlackInteractionFormHandler>();
+            
+            services.AddSingleton<SlackInteractionActionHandler, SlackFinishToteInteractionHandler>();
+            services.AddSingleton<SlackInteractionActionHandler, SlackPlaceBetStartInteractionHandler>();
+            services.AddSingleton<SlackInteractionActionHandler, SlackPlaceBetInteractionHandler>();
+            
+            
             services.AddSingleton<EmissionRequestHandler>();
             services.AddSingleton<TossACoinHandler>();
             services.AddSingleton<BalanceRequestHandler>();
