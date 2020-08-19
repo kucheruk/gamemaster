@@ -2,6 +2,7 @@ using gamemaster.CommandHandlers.Ledger;
 using gamemaster.CommandHandlers.Tote;
 using gamemaster.Services;
 using gamemaster.Slack;
+using gamemaster.Slack.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace gamemaster.Extensions

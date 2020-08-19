@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using gamemaster.Config;
 using gamemaster.Models;
 using gamemaster.Slack;
+using gamemaster.Slack.Models;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 

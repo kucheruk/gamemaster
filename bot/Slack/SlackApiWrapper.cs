@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using System.Web;
 using gamemaster.Config;
 using gamemaster.Messages;
+using gamemaster.Slack.Dialogs;
+using gamemaster.Slack.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;

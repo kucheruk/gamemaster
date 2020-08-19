@@ -6,6 +6,7 @@ using gamemaster.Extensions;
 using gamemaster.Messages;
 using gamemaster.Models;
 using gamemaster.Slack;
+using gamemaster.Slack.Dialogs;
 using SlackAPI;
 
 namespace gamemaster.CommandHandlers
