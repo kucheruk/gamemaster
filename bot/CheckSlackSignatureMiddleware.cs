@@ -9,17 +9,20 @@ namespace gamemaster
     {
         private readonly RequestDelegate _next;
         private readonly SlackRequestSignature _slackSignature;
+        private readonly SlackRequestContainer _req;
 
-        public CheckSlackSignatureMiddleware(RequestDelegate next, SlackRequestSignature slackSignature)
+        public CheckSlackSignatureMiddleware(RequestDelegate next, SlackRequestSignature slackSignature, SlackRequestContainer req)
         {
             _next = next;
             _slackSignature = slackSignature;
+            _req = req;
         }
 
         public async Task Invoke(HttpContext context)
         {
             var request = context.Request;
             var bodyAsText = await context.ReadRequestBodyAstString();
+            _req.Raw = bodyAsText;
             if (SignatureKeyIsValid(bodyAsText, request))
             {
                 await _next(context);

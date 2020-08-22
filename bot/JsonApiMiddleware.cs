@@ -14,15 +14,18 @@ namespace gamemaster
 {
     public class JsonApiMiddleware
     {
+        private readonly SlackRequestContainer _req;
         private readonly IEnumerable<SlackJsonHandler> _jsonHandlers;
         private readonly IEnumerable<SlackFormHandler> _formHandlers;
         private readonly ILogger<JsonApiMiddleware> _logger;
 
         public JsonApiMiddleware(RequestDelegate _,
+            SlackRequestContainer req,
             IEnumerable<SlackJsonHandler> jsonHandlers,
             ILogger<JsonApiMiddleware> logger,
             IEnumerable<SlackFormHandler> formHandlers)
         {
+            _req = req;
             _jsonHandlers = jsonHandlers;
             _logger = logger;
             _formHandlers = formHandlers;
@@ -33,14 +36,14 @@ namespace gamemaster
             try
             {
                 var request = context.Request;
-                var bodyAsText = await context.ReadRequestBodyAstString();
                 var mediaType = GetMediaType(request);
                 if (mediaType == "application/json")
                 {
-                    var rq = JObject.Parse(bodyAsText);
+                    var json = JObject.Parse(_req.Raw);
+                    _req.Json = json;
                     foreach (var jsonHandler in _jsonHandlers)
                     {
-                        if (await jsonHandler.Handle(rq, context.Response))
+                        if (await jsonHandler.Handle(json, context.Response))
                         {
                             return;
                         }
@@ -48,9 +51,9 @@ namespace gamemaster
                 }
                 else if (mediaType == "application/x-www-form-urlencoded")
                 {
-                    var form = bodyAsText.Split("&").Select(a => a.Split("="))
+                    var form = _req.Raw.Split("&").Select(a => a.Split("="))
                         .ToDictionary(a => a[0], a => HttpUtility.UrlDecode(a[1]));
-                  
+                    _req.Form = form;
                     foreach (var formHandler in _formHandlers)
                     {
                         if (await formHandler.Handle(form, context.Response))

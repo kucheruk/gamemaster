@@ -12,6 +12,8 @@ namespace gamemaster.Extensions
         public static void AddSlack(this IServiceCollection services)
         {
             services.AddSingleton<SlackApiWrapper>();
+            services.AddScoped<SlackRequestContainer>();
+            services.AddSingleton<SlackRequestSignature>();
             services.AddSingleton<SlackJsonHandler, SlackUrlVerificationHandler>();
             services.AddSingleton<SlackJsonHandler, SlackMessageEmptyHandler>();
             services.AddSingleton<SlackJsonHandler, SlackEventCallbackHandler>();

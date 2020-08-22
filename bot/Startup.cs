@@ -30,7 +30,6 @@ namespace gamemaster
             services.AddAppState();
             services.AddSlack();
             services.AddActors();
-            services.AddSingleton<SlackRequestSignature>();
             services.AddTransient<DbMaintenanceService>();
         }
 
