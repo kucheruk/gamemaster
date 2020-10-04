@@ -156,7 +156,7 @@ namespace gamemaster.Actors
             {
                 Address.Tell(new ValidatedTransferMessage(msg.ToUser, msg.FromUser, amount, msg.Currency,
                     "Промокоды бывают не очень-то хорошими!"));
-                MessengerActor.Send(new MessageToChannel(_app.Value.AnnouncementsChannelId, $"<@{msg.ToUser}> нашёл чооорный промокод и теряет {msg.Amount}{msg.Currency}"));
+                MessengerActor.Send(new MessageToChannel(_app.Value.AnnouncementsChannelId, $"<@{msg.ToUser}> нашёл чооорный промокод и *теряет* {amount}{msg.Currency}"));
             }
         }
 
