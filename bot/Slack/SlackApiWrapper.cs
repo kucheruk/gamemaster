@@ -37,6 +37,7 @@ namespace gamemaster.Slack
 
         public async Task PostAsync(MessageToChannel msg)
         {
+            _logger.LogInformation("Posting {Channel} {Message}", msg.ChannelId, msg.Message);
             await _client.PostMessageAsync(msg.ChannelId, msg.Message);
         }
 

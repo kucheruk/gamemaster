@@ -19,7 +19,7 @@ namespace gamemaster.CommandHandlers.Tote
         {
             foreach (var command in _commands)
             {
-                if (command.Match(text))
+                if (command.Match(TextCommandFamily.Tote, text))
                 {
                     return await command.Process(new SlackTextCommand(user, context, responseUrl, text));
                 }

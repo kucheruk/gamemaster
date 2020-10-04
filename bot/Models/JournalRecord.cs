@@ -24,7 +24,7 @@ namespace gamemaster.Models
 
         public Account ToAccount()
         {
-            return new Account(UserId, Currency ?? Constants.DefaultCurrency);
+            return new Account(UserId, Currency);
         }
     }
 }

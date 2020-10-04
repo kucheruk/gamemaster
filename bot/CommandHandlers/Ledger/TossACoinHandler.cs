@@ -3,10 +3,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using Akka.Actor;
 using gamemaster.Actors;
+using gamemaster.Config;
 using gamemaster.Messages;
 using gamemaster.Models;
 using gamemaster.Slack;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SlackAPI;
 
 namespace gamemaster.CommandHandlers.Ledger
@@ -15,19 +17,21 @@ namespace gamemaster.CommandHandlers.Ledger
     {
         private readonly SlackApiWrapper _slack;
         private readonly ILogger<TossACoinHandler> _logger;
+        private readonly IOptions<AppConfig> _app;
 
         public TossACoinHandler(SlackApiWrapper slack,
-            ILogger<TossACoinHandler> logger)
+            ILogger<TossACoinHandler> logger, IOptions<AppConfig> app)
         {
             _slack = slack;
             _logger = logger;
+            _app = app;
         }
 
 
         public async Task<(bool success, string reason)> HandleTossAsync(string fromUser, string text,
             string responseUrl, MessageContext mctx)
         {
-            TossRequestParams p = TossRequestParams.FromText(text);
+            TossRequestParams p = TossRequestParams.FromText(text, _app.Value.DefaultCurrency);
             if (p == null)
             {
                 return (false,

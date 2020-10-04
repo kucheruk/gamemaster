@@ -3,28 +3,25 @@ version: '3.4'
 services:
   gamemaster.app:
     container_name: web_gm
-    # env_file:
-      # - ~/.env
+    env_file:
+      - ~/.gamemaster.env.${ASPNETCORE_ENVIRONMENT}
     build:
       context: .
     restart:
       always
     volumes:
-      - ~/.nuget:/root/.nuget
-    environment:
-      - Mongo:ConnectionString=mongodb://db_gm:27017
-      - ASPNETCORE_ENVIRONMENT=Release
+      - /root/.nuget:/root/.nuget
     logging:
       options:
         max-size: "5m"
         max-file: "10"
 
   gamemaster.proxy:
+    env_file:
+      - ~/.gamemaster.env.${ASPNETCORE_ENVIRONMENT}
     volumes:
-      - ~/data/caddy_data/:/data
-      - ~/data/caddy_config/:/config
-    environment:
-      env: ${ASPNETCORE_ENVIRONMENT}
+      - /root/data/caddy_data/:/data
+      - /root/data/caddy_config/:/config
     container_name: proxy_gm
     restart:
       always
@@ -39,12 +36,14 @@ services:
         max-file: "10"
 
   gamemaster.db:
+    env_file:
+      - ~/.gamemaster.env.${ASPNETCORE_ENVIRONMENT}
     image: mongo:latest
     container_name: db_gm
     restart:
       always
     volumes:
-      -  ~/data/db:/data/db
+      -  /root/data/db:/data/db
     logging:
       options:
         max-size: "5m"

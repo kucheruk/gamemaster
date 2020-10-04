@@ -1,3 +1,5 @@
+ARG ASPNETCORE_ENVIRONMENT=production
 FROM caddy:2-alpine
-COPY Caddyfile.${env} /etc/caddy/Caddyfile
+ENV ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+COPY Caddyfile.production /etc/caddy/Caddyfile
 COPY www /var/www

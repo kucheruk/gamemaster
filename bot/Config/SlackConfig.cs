@@ -4,7 +4,7 @@ namespace gamemaster.Config
 {
     public class AppConfig
     {
-        public string DefaultCurrency { get; set; }
+        public string DefaultCurrency { get; set; } = ":coin:";
         public bool LimitToDefaultCurrency { get; set; }
         public string AnnouncementsChannelId { get; set; }
     }

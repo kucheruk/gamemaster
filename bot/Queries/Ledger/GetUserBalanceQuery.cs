@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using gamemaster.Config;
 using gamemaster.Db;
 using gamemaster.Extensions;
 using gamemaster.Models;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
 namespace gamemaster.Queries.Ledger
@@ -10,30 +12,36 @@ namespace gamemaster.Queries.Ledger
     public class GetUserBalanceQuery
     {
         private readonly MongoStore _ms;
+        private readonly IOptions<AppConfig> _app;
 
-        public GetUserBalanceQuery(MongoStore ms)
+        public GetUserBalanceQuery(MongoStore ms, IOptions<AppConfig> app)
         {
             _ms = ms;
-        }
-
-        public async Task<List<AccountWithAmount>> GetAsync(string period)
-        {
-            var recs = await _ms.Journal.Find(a => a.Period == period).ToListAsync();
-            return recs.ToAccountBalances();
-        }
-
-        public async Task<List<AccountWithAmount>> GetAsync(string period, string userId)
-        {
-            var recs = await _ms.Journal.Find(a => a.Period == period && a.UserId == userId).ToListAsync();
-            return recs.ToAccountBalances();
+            _app = app;
         }
 
         public async Task<List<AccountWithAmount>> GetAsync(string period, string userId,
-            string currency)
+            string currency, bool isAdmin)
         {
-            var recs = await _ms.Journal.Find(a => a.Period == period && a.UserId == userId && a.Currency == currency)
-                .ToListAsync();
+            var where = Builders<JournalRecord>.Filter;
+            var cond = where.Eq(a => a.Period, period);
+            if (!isAdmin)
+            {
+                cond &= where.Eq(a => a.UserId, userId);
+            }
+
+            if (_app.Value.LimitToDefaultCurrency)
+            {
+                cond &= where.Eq(a => a.Currency, _app.Value.DefaultCurrency);
+            }
+            else if (!string.IsNullOrEmpty(currency))
+            {
+                cond &= where.Eq(a => a.Currency, currency);
+            }
+
+            var recs = await _ms.Journal.Find(cond).ToListAsync();
             return recs.ToAccountBalances();
         }
+
     }
 }

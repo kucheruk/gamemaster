@@ -22,7 +22,7 @@ namespace gamemaster.Models
             TossAll = all;
         }
 
-        public static TossRequestParams FromText(string text)
+        public static TossRequestParams FromText(string text, string defaultCurrency)
         {
             var all = false;
             var parts = text.Trim().Split(' ').ToArray();
@@ -30,7 +30,7 @@ namespace gamemaster.Models
             {
                 return null;
             }
-            var currency = CommandsPartsParse.FindCurrency(parts, Constants.DefaultCurrency);
+            var currency = CommandsPartsParse.FindCurrency(parts, defaultCurrency);
             var rest = text.Replace(currency, string.Empty);
             var userId = CommandsPartsParse.FindUserId(parts);
             if (userId.HasValue)

@@ -1,5 +1,5 @@
 #!/bin/sh
-ASPNETCORE_ENVIRONMENT=staging
+export ASPNETCORE_ENVIRONMENT=staging
 dotnet clean
 dotnet build
 docker-compose --context botstaging up -d

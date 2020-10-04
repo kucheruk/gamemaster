@@ -30,6 +30,7 @@ namespace gamemaster.Extensions
             services.AddSingleton<TossACoinHandler>();
             services.AddSingleton<BalanceRequestHandler>();
             services.AddSingleton<ToteRequestHandler>();
+            services.AddSingleton<PromoRequestHandler>();
             services.AddHttpClient<SlackResponseService>();
         }
     }

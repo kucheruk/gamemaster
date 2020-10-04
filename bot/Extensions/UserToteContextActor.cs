@@ -61,7 +61,7 @@ namespace gamemaster.Extensions
         {
             _user = pars.UserId;
             _toteValue = await _getTote.GetAsync(pars.ToteId);
-            var balance = await _balance.GetAsync(_cp.Period, _user, _toteValue.Currency);
+            var balance = await _balance.GetAsync(_cp.Period, _user, _toteValue.Currency, false);
             var balanceAmount = balance.Count > 0 ? balance[0].Amount : 0;
             await _slack.Dialog(pars.TriggerId, LongMessagesToUser.ToteDialog(_toteValue, balanceAmount));
             // await _response.ResponseWithBlocks(pars.ResponseUrl, LongMessagesToUser.ToteOptionsButtons(_toteValue, balanceAmount).ToList(), true);

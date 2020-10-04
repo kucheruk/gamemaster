@@ -5,9 +5,9 @@ namespace gamemaster.CommandHandlers.Tote
 {
     public class ToteHelpTextCommandHandler : ITextCommandHandler
     {
-        public bool Match(string text)
+        public bool Match(TextCommandFamily family, string text)
         {
-            return text.StartsWith("help");
+            return family == TextCommandFamily.Tote && text.StartsWith("help");
         }
 
         public Task<(bool result, string response)> Process(SlackTextCommand cmd)

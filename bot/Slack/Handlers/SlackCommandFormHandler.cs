@@ -15,19 +15,22 @@ namespace gamemaster.Slack.Handlers
         private readonly EmissionRequestHandler _emissionHandler;
         private readonly TossACoinHandler _tossHandler;
         private readonly ToteRequestHandler _toteHandler;
+        private readonly PromoRequestHandler _promoHandler;
         private readonly ILogger<SlackCommandFormHandler> _logger;
 
         public SlackCommandFormHandler(BalanceRequestHandler balanceHandler, 
             EmissionRequestHandler emissionHandler,
             TossACoinHandler tossHandler, 
             ToteRequestHandler toteHandler,
-            ILogger<SlackCommandFormHandler> logger)
+            ILogger<SlackCommandFormHandler> logger, 
+            PromoRequestHandler promoHandler)
         {
             _balanceHandler = balanceHandler;
             _emissionHandler = emissionHandler;
             _tossHandler = tossHandler;
             _toteHandler = toteHandler;
             _logger = logger;
+            _promoHandler = promoHandler;
         }
 
         public override async Task<bool> Handle(Dictionary<string, string> form, HttpResponse response)
@@ -45,7 +48,7 @@ namespace gamemaster.Slack.Handlers
 
             return false;
         }
-        
+
         private async Task<(bool success, string reason)> HandleCommandAsync(string user, string command,
             string text, MessageContext mctx,
             string responseUrl)
@@ -54,7 +57,8 @@ namespace gamemaster.Slack.Handlers
             {
                 case "/emit":
                     return _emissionHandler.HandleEmission(user, text, responseUrl);
-
+                case "/promo":
+                    return await _promoHandler.HandlePromoAsync(user, text, mctx, responseUrl);
                 case "/tote":
                     return await _toteHandler.HandleToteAsync(user, text, mctx, responseUrl);
                 case "/balance":
@@ -69,7 +73,7 @@ namespace gamemaster.Slack.Handlers
             }
         }
 
-        
+
         private MessageContext GetMessageContext(Dictionary<string, string> parts)
         {
             if (parts.TryGetValue("channel_id", out var id) && parts.TryGetValue("channel_name", out var name))

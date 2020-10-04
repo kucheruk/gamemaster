@@ -39,19 +39,28 @@ namespace gamemaster.Services
 
         private async Task StartAsync()
         {
-            var state = await _getState.GetAsync();
-            if (state == null)
+            _logger.LogInformation("Getting DB State");
+            try
             {
-                await _setState.SaveStateAsync(new AppState
+                var state = await _getState.GetAsync();
+                if (state == null)
                 {
-                    Id = Constants.DefaultAppInstance,
-                    DbVersion = 0,
-                    CurrentLedgerPeriod = string.Empty
-                });
-            }
+                    await _setState.SaveStateAsync(new AppState
+                    {
+                        Id = Constants.DefaultAppInstance,
+                        DbVersion = 0,
+                        CurrentLedgerPeriod = string.Empty
+                    });
+                }
 
-            _logger.LogInformation("done");
-            Context.Parent.Tell(new DbMainetanceDoneMessage());
+                _logger.LogInformation("done");
+                Context.Parent.Tell(new DbMainetanceDoneMessage());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting state for maintenance");
+                throw;
+            }
         }
     }
 }

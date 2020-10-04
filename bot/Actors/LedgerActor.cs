@@ -6,13 +6,15 @@ using System.Threading.Tasks;
 using Akka.Actor;
 using gamemaster.CommandHandlers.Ledger;
 using gamemaster.Commands;
+using gamemaster.Config;
 using gamemaster.Extensions;
 using gamemaster.Messages;
 using gamemaster.Models;
 using gamemaster.Queries.Ledger;
 using gamemaster.Services;
-using gamemaster.Slack;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 
 namespace gamemaster.Actors
 {
@@ -22,25 +24,27 @@ namespace gamemaster.Actors
         private readonly EmitCurrencyCommand _emission;
         private readonly GetUserBalanceQuery _getUserBalance;
         private readonly ILogger<LedgerActor> _logger;
-        private readonly SlackApiWrapper _slack;
         private readonly SlackResponseService _slackResponse;
         private readonly TossCurrencyCommand _toss;
+        private readonly IOptions<AppConfig> _app;
+        private readonly IOptions<SlackConfig> _slackCfg;
 
         public LedgerActor(CurrentPeriodService currentPeriod,
             GetUserBalanceQuery getUserBalance,
             EmitCurrencyCommand emission,
-            SlackApiWrapper slack,
             SlackResponseService slackResponse,
             TossCurrencyCommand toss,
-            ILogger<LedgerActor> logger)
+            ILogger<LedgerActor> logger, IOptions<AppConfig> app,
+            IOptions<SlackConfig> slackCfg)
         {
             _currentPeriod = currentPeriod;
             _getUserBalance = getUserBalance;
             _emission = emission;
-            _slack = slack;
             _slackResponse = slackResponse;
             _toss = toss;
             _logger = logger;
+            _app = app;
+            _slackCfg = slackCfg;
             Become(Starting);
         }
 
@@ -59,6 +63,7 @@ namespace gamemaster.Actors
         {
             ReceiveAsync<EmitMessage>(HandleEmissions);
             ReceiveAsync<TossACoinMessage>(HandleToss);
+            ReceiveAsync<PromoTransferMessage>(HandlePromo);
             ReceiveAsync<GiveAwayMessage>(HandleGiveAway);
             ReceiveAsync<GetBalanceMessage>(ResponseWithBalance);
             ReceiveAsync<GetAccountBalanceRequestMessage>(GetAccountBalance);
@@ -69,13 +74,13 @@ namespace gamemaster.Actors
 
         private async Task GetAccountBalance(GetAccountBalanceRequestMessage arg)
         {
-            var resp = await _getUserBalance.GetAsync(_currentPeriod.Period, arg.UserId, arg.Currency);
+            var resp = await _getUserBalance.GetAsync(_currentPeriod.Period, arg.UserId, arg.Currency, false);
             Context.Sender.Tell(resp);
         }
 
         private async Task TransferAll(ValidatedTransferAllFundsMessage msg)
         {
-            var balance = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.FromAccount, msg.Currency);
+            var balance = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.FromAccount, msg.Currency, false);
             var b = balance.FirstOrDefault();
             Address.Tell(new ValidatedTransferMessage(msg.FromAccount, msg.ToAccount, b.Amount, b.Account.Currency,
                 msg.OpDesc, false, msg.FromCaption));
@@ -89,7 +94,7 @@ namespace gamemaster.Actors
 
         private async Task HandleGiveAway(GiveAwayMessage msg)
         {
-            var resp = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.FromUser, msg.Currency);
+            var resp = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.FromUser, msg.Currency, false);
             var userAccount = resp.Count == 0 ? 0 : resp[0].Amount;
             var amount = msg.TossAll ? userAccount : msg.Amount;
             if (userAccount < amount || userAccount == 0)
@@ -112,6 +117,69 @@ namespace gamemaster.Actors
             }
         }
 
+        private Task HandlePromo(PromoTransferMessage msg)
+        {
+            _logger.LogInformation($"Handle promo! {msg.Amount} {msg.FromUser} {msg.Currency} {msg.ToUser}");
+            try
+            {
+                if (msg.Amount > 0)
+                {
+                    return HandlePositivePromo(msg);
+                }
+                else if (msg.Amount < 0)
+                {
+                    return HandleNegativePromo(msg);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error handling promo code");
+                throw;
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private async Task HandleNegativePromo(PromoTransferMessage msg)
+        {
+            var resp = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.ToUser, msg.Currency, false);
+            var userAccount = resp.Count == 0 ? 0 : resp[0].Amount;
+
+            var amount = Math.Abs(msg.Amount);
+            if (userAccount < amount || userAccount == 0)
+            {
+                await _slackResponse.ResponseWithText(msg.ResponseUrl,
+                    $"Повезло! Было бы у тебя нужное количество монет - они бы пропали :)",
+                    true);
+            }
+            else
+            {
+                Address.Tell(new ValidatedTransferMessage(msg.ToUser, msg.FromUser, amount, msg.Currency,
+                    "Промокоды бывают не очень-то хорошими!"));
+                MessengerActor.Send(new MessageToChannel(_app.Value.AnnouncementsChannelId, $"<@{msg.ToUser}> нашёл чооорный промокод и теряет {msg.Amount}{msg.Currency}"));
+            }
+        }
+
+        private async Task HandlePositivePromo(PromoTransferMessage msg)
+        {
+            var resp = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.FromUser, msg.Currency, false);
+            var userAccount = resp.Count == 0 ? 0 : resp[0].Amount;
+
+            var amount = msg.Amount;
+            _logger.LogInformation($"On balance for promo: {userAccount}, amount {amount} {msg.Currency}");
+            if (userAccount < amount || userAccount == 0)
+            {
+                await _slackResponse.ResponseWithText(msg.ResponseUrl,
+                    $":cry: печально, но в банке промокодов нет столько ({amount}) {msg.Currency}.",
+                    true);
+            }
+            else
+            {
+                Address.Tell(new ValidatedTransferMessage(msg.FromUser, msg.ToUser, amount, msg.Currency,
+                    "За найденный промокод!")); 
+            }
+        }
+
         private async Task HandleToss(TossACoinMessage msg)
         {
             if (msg.Amount <= 0 && !msg.TossAll)
@@ -129,7 +197,7 @@ namespace gamemaster.Actors
                 return;
             }
 
-            var resp = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.FromUser, msg.Currency);
+            var resp = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.FromUser, msg.Currency, false);
             var userAccount = resp.Count == 0 ? 0 : resp[0].Amount;
             var amount = msg.TossAll ? userAccount : msg.Amount;
             if (userAccount < amount || userAccount == 0)
@@ -156,38 +224,53 @@ namespace gamemaster.Actors
 
         private async Task TransferToUser(ValidatedTransferMessage msg)
         {
-            await _toss.TransferAsync(_currentPeriod.Period, msg.FromAccount, msg.ToAccount, msg.Amount, msg.Currency);
-            if (!msg.ToServiceAccount)
+            _logger.LogInformation("Got Transfer {command}", JsonConvert.SerializeObject(msg));
+            try
             {
-                var fromUserCaption = msg.FromUserCaption ?? $"<@{msg.FromAccount}>";
-                var hoho = new StringBuilder();
-                hoho.AppendLine("Привет!")
-                    .AppendLine("День перестал быть томным, лови монетки!")
-                    .AppendLine($"Перевод {msg.Currency}{msg.Amount} от {fromUserCaption}.");
-
-                if (!string.IsNullOrEmpty(msg.Comment))
+                await _toss.TransferAsync(_currentPeriod.Period, msg.FromAccount, msg.ToAccount, msg.Amount, msg.Currency);
+                if (!msg.ToServiceAccount)
                 {
-                    hoho.AppendLine("Комментарий к переводу:")
-                        .Append(">")
-                        .AppendLine(msg.Comment);
-                }
+                    var fromUserCaption = msg.FromUserCaption ?? $"<@{msg.FromAccount}>";
+                    var ann = new StringBuilder();
+                    var hoho = new StringBuilder();
+                    hoho.AppendLine("Привет!")
+                        .AppendLine("День перестал быть томным, лови монетки!")
+                        .AppendLine($"Перевод {msg.Currency}{msg.Amount} от {fromUserCaption}.");
+                    ann.AppendLine($"<@{msg.ToAccount}> получил {msg.Amount}{msg.Currency} {msg.Comment}");
+                    if (!string.IsNullOrEmpty(msg.Comment))
+                    {
+                        hoho.AppendLine("Комментарий к переводу:")
+                            .Append(">")
+                            .AppendLine(msg.Comment);
+                    }
 
-                hoho.AppendLine()
-                    .AppendLine("Что можно сделать с монетками:")
-                    .AppendLine("`/balance` - посмотреть свой баланс")
-                    .AppendLine("`/toss` - передать другому пользователю")
-                    .AppendLine("`/tote` - сказочно разбогатеть с тотализатором")
-                    .AppendLine("Всё в твоих руках!");
-                MessengerActor.Send(new MessageToChannel(msg.ToAccount, hoho.ToString()));
+                    hoho.AppendLine()
+                        .AppendLine("Что можно сделать с монетками:")
+                        .AppendLine("`/balance` - посмотреть свой баланс")
+                        .AppendLine("`/toss` - передать другому пользователю")
+                        .AppendLine("`/tote` - сказочно разбогатеть с тотализатором")
+                        .AppendLine("Всё в твоих руках!");
+                    MessengerActor.Send(new MessageToChannel(msg.ToAccount, hoho.ToString()));
+                    if (!_slackCfg.Value.Admins.Contains(msg.ToAccount))
+                    {
+                        MessengerActor.Send(new MessageToChannel(_app.Value.AnnouncementsChannelId, ann.ToString()));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error tossing");
+                throw;
             }
         }
 
 
         private async Task ResponseWithBalance(GetBalanceMessage msg)
         {
+            _logger.LogInformation("Balance Request {Admin} {User}", msg.Admin,  msg.UserId);
             if (msg.Admin)
             {
-                var resp = await _getUserBalance.GetAsync(_currentPeriod.Period);
+                var resp = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.UserId, null, msg.Admin);
                 if (resp.Count > 0)
                 {
                     await FormatAndReplyWithSystemBalance(msg, resp);
@@ -200,7 +283,7 @@ namespace gamemaster.Actors
             }
             else
             {
-                var resp = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.UserId);
+                var resp = await _getUserBalance.GetAsync(_currentPeriod.Period, msg.UserId, null, msg.Admin);
                 if (resp.Count > 0)
                 {
                     await FormatAndReplyWithUserBalance(msg, resp);
@@ -289,6 +372,12 @@ namespace gamemaster.Actors
             Self.Tell(MsgTick.Instance);
             ScheduleNextPeriodTick(NextPeriodTimestamp());
             base.PreStart();
+        }
+
+        protected override void PostRestart(Exception reason)
+        {
+            _logger.LogError(reason, "restart");
+            base.PostRestart(reason);
         }
 
         public override void AroundPreRestart(Exception cause, object message)

@@ -16,17 +16,23 @@ namespace gamemaster.Db
         public MongoStore(IOptions<MongoConfig> cfg)
         {
             var cs = MongoClientSettings.FromConnectionString(cfg.Value.ConnectionString);
+            cs.ServerSelectionTimeout = TimeSpan.FromSeconds(3);
             cs.ConnectTimeout = TimeSpan.FromSeconds(2);
             _mc = new MongoClient(cs);
             Db = _mc.GetDatabase(cfg.Value.DbName ?? "gamemaster");
             Bright = GetCollection<SlackInteractionAction>("actions");
             Journal = GetCollection<JournalRecord>("journal");
+            Promo = GetCollection<PromoCode>("promocodes");
             Ops = GetCollection<OperationDescription>("ops");
             Players = GetCollection<Player>("players");
             Totes = GetCollection<Tote>("totes");
             ToteReports = GetCollection<ToteReport>("toteReports");
             App = GetCollection<AppState>("appState");
+            Promo.Indexes.CreateOneAsync(new CreateIndexModel<PromoCode>(Builders<PromoCode>.IndexKeys.Ascending(a => a.Code)));
+            Promo.Indexes.CreateOneAsync(new CreateIndexModel<PromoCode>(Builders<PromoCode>.IndexKeys.Ascending(a => a.Activated)));
         }
+
+        public IMongoCollection<PromoCode> Promo { get; set; }
 
         public IMongoCollection<OperationDescription> Ops { get; set; }
 

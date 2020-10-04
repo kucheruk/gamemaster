@@ -20,6 +20,17 @@ namespace gamemaster.CommandHandlers
             return (string.Empty, def);
         }
 
+        public static (string p, decimal) FindSignedDecimal(IEnumerable<string> parts, int def)
+        {
+            var p = parts.FirstOrDefault(a => decimal.TryParse(a, out var v) && v != 0);
+            if (p != null)
+            {
+                return (p, decimal.Parse(p).Trim());
+            }
+
+            return (string.Empty, def);
+        }
+
         public static string FindCurrency(IEnumerable<string> parts, string defaultCurrency)
         {
             return parts.FirstOrDefault(a => a.StartsWith(':') && a.EndsWith(':')) ?? defaultCurrency;

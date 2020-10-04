@@ -23,10 +23,9 @@ namespace gamemaster.CommandHandlers.Tote
             _slackResponse = slackResponse;
         }
 
-        public bool Match(string text)
+        public bool Match(TextCommandFamily family, string text)
         {
-            return text.StartsWith("close")
-                ;
+            return family == TextCommandFamily.Tote && text.StartsWith("close");
         }
 
         public async Task<(bool result, string response)> Process(SlackTextCommand cmd)

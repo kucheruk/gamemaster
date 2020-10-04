@@ -1,9 +1,11 @@
 using System;
 using System.Threading.Tasks;
 using gamemaster.Commands;
+using gamemaster.Config;
 using gamemaster.Models;
 using gamemaster.Queries.Tote;
 using gamemaster.Services;
+using Microsoft.Extensions.Options;
 
 namespace gamemaster.CommandHandlers.Tote
 {
@@ -12,19 +14,23 @@ namespace gamemaster.CommandHandlers.Tote
         private readonly CreateNewToteCommand _createNewTote;
         private readonly GetCurrentToteForUserQuery _getCurrentTote;
         private readonly SlackResponseService _slackResponse;
+        private readonly IOptions<AppConfig> _app;
 
-        public NewToteTextCommandHandler(GetCurrentToteForUserQuery getCurrentTote, SlackResponseService slackResponse,
-            CreateNewToteCommand createNewTote)
+        public NewToteTextCommandHandler(GetCurrentToteForUserQuery getCurrentTote, 
+            SlackResponseService slackResponse,
+            CreateNewToteCommand createNewTote, 
+            IOptions<AppConfig> app)
         {
             _getCurrentTote = getCurrentTote;
             _slackResponse = slackResponse;
             _createNewTote = createNewTote;
+            _app = app;
         }
 
 
-        public bool Match(string text)
+        public bool Match(TextCommandFamily family, string text)
         {
-            return text.StartsWith("new");
+            return family == TextCommandFamily.Tote && text.StartsWith("new");
         }
 
         public async Task<(bool result, string response)> Process(SlackTextCommand cmd)
@@ -40,9 +46,9 @@ namespace gamemaster.CommandHandlers.Tote
             var parts = rest.Split(" ");
             if (parts.Length > 1)
             {
-                var currency = CommandsPartsParse.FindCurrency(parts, null);
+                var currency = _app.Value.LimitToDefaultCurrency ? _app.Value.DefaultCurrency : CommandsPartsParse.FindCurrency(parts, _app.Value.DefaultCurrency);
 
-                if (string.IsNullOrEmpty(currency))
+                if (!_app.Value.LimitToDefaultCurrency && string.IsNullOrEmpty(currency))
                 {
                     return (false,
                         "Не понял в какой валюте запускать тотализатор. Пример запуска: `/tote new :currency: Кого уволят первым?`, где :currency: - любой тип монеток, существующий у пользователей на руках, например :coin:.");

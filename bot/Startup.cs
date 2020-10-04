@@ -20,14 +20,13 @@ namespace gamemaster
 
         public IConfiguration Configuration { get; }
 
-        // TODO: Deploy with docket contexts
-        // TODO: Default currency = :hack:
-        // TODO: Get config
+        // DONE: Deploy with docket contexts
+        // DONE: Default currency = :hack:
         // TODO: Add Promo Code
         // TODO: Enter Promo Code
         // TODO: Handle Promo Code
-        // TODO: Mirror messages to announcements channel
-        // TODO: Total Balance with single currency
+        // DONE: Mirror messages to announcements channel
+        // DONE: Total Balance with single currency
         // TODO: Help links
         public void ConfigureServices(IServiceCollection services)
         {
@@ -37,6 +36,7 @@ namespace gamemaster
             services.AddMongoStorage();
             services.AddLedger();
             services.AddTote();
+            services.AddPromo();
             services.AddAppState();
             services.AddSlack();
             services.AddActors();
