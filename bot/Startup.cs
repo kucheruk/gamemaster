@@ -20,8 +20,18 @@ namespace gamemaster
 
         public IConfiguration Configuration { get; }
 
+        // TODO: Deploy with docket contexts
+        // TODO: Default currency = :hack:
+        // TODO: Get config
+        // TODO: Add Promo Code
+        // TODO: Enter Promo Code
+        // TODO: Handle Promo Code
+        // TODO: Mirror messages to announcements channel
+        // TODO: Total Balance with single currency
+        // TODO: Help links
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<AppConfig>(Configuration.GetSection("App"));
             services.Configure<SlackConfig>(Configuration.GetSection("Slack"));
             services.Configure<MongoConfig>(Configuration.GetSection("Mongo"));
             services.AddMongoStorage();

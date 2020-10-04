@@ -2,6 +2,13 @@ using System.Collections.Generic;
 
 namespace gamemaster.Config
 {
+    public class AppConfig
+    {
+        public string DefaultCurrency { get; set; }
+        public bool LimitToDefaultCurrency { get; set; }
+        public string AnnouncementsChannelId { get; set; }
+    }
+    
     public class SlackConfig
     {
         public string AppId { get; set; }
