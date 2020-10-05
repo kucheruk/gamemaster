@@ -57,6 +57,7 @@ namespace gamemaster.CommandHandlers.Tote
                     Currency = code.Currency,
                     FromUser = code.FromUserId,
                     ToUser = user,
+                    Code = code.Code,
                     ResponseUrl = responseUrl
                 }, ActorRefs.Nobody);
             }

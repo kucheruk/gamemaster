@@ -156,7 +156,7 @@ namespace gamemaster.Actors
             {
                 Address.Tell(new ValidatedTransferMessage(msg.ToUser, msg.FromUser, amount, msg.Currency,
                     "Промокоды бывают не очень-то хорошими!"));
-                MessengerActor.Send(new MessageToChannel(_app.Value.AnnouncementsChannelId, $"<@{msg.ToUser}> нашёл чооорный промокод и *теряет* {amount}{msg.Currency}"));
+                MessengerActor.Send(new MessageToChannel(_app.Value.AnnouncementsChannelId, $"<@{msg.ToUser}> нашёл чооорный промокод `{msg.Code}` и *теряет* {amount}{msg.Currency}"));
             }
         }
 
@@ -176,7 +176,7 @@ namespace gamemaster.Actors
             else
             {
                 Address.Tell(new ValidatedTransferMessage(msg.FromUser, msg.ToUser, amount, msg.Currency,
-                    "За найденный промокод!")); 
+                    $"За найденный промокод `{msg.Code}`!")); 
             }
         }
 
@@ -251,7 +251,7 @@ namespace gamemaster.Actors
                         .AppendLine("`/tote` - сказочно разбогатеть с тотализатором")
                         .AppendLine("Всё в твоих руках!");
                     MessengerActor.Send(new MessageToChannel(msg.ToAccount, hoho.ToString()));
-                    if (!_slackCfg.Value.Admins.Contains(msg.ToAccount))
+                    if (!_slackCfg.Value.Admins.Contains(msg.ToAccount) && _slackCfg.Value.Admins.Contains(msg.FromAccount))
                     {
                         MessengerActor.Send(new MessageToChannel(_app.Value.AnnouncementsChannelId, ann.ToString()));
                     }

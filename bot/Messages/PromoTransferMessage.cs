@@ -7,5 +7,6 @@ namespace gamemaster.Messages
         public decimal Amount { get; set; }
         public string ResponseUrl { get; set; }
         public string ToUser { get; set; }
+        public string Code { get; set; }
     }
 }
