@@ -22,9 +22,9 @@ namespace gamemaster
 
         // DONE: Deploy with docket contexts
         // DONE: Default currency = :hack:
-        // TODO: Add Promo Code
-        // TODO: Enter Promo Code
-        // TODO: Handle Promo Code
+        // DONE: Add Promo Code
+        // DONE: Enter Promo Code
+        // DONE: Handle Promo Code
         // DONE: Mirror messages to announcements channel
         // DONE: Total Balance with single currency
         // TODO: Help links

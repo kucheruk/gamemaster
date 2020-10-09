@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using gamemaster.Commands;
 using gamemaster.Config;
@@ -7,12 +8,12 @@ using Microsoft.Extensions.Options;
 
 namespace gamemaster.CommandHandlers.Tote
 {
-    public class PromoListTextCommandHandler : ITextCommandHandler
+    public class PromoListFullTextCommandHandler : ITextCommandHandler
     {
         private readonly PromoListQuery _list;
         private readonly IOptions<SlackConfig> _cfg;
 
-        public PromoListTextCommandHandler(PromoListQuery list, IOptions<SlackConfig> cfg)
+        public PromoListFullTextCommandHandler(PromoListQuery list, IOptions<SlackConfig> cfg)
         {
             _list = list;
             _cfg = cfg;
@@ -20,16 +21,21 @@ namespace gamemaster.CommandHandlers.Tote
 
         public bool Match(TextCommandFamily family, string text)
         {
-            return family == TextCommandFamily.Promo && text.StartsWith("list");
+            return family == TextCommandFamily.Promo && text.StartsWith("fulllist");
         }
 
         public async Task<(bool result, string response)> Process(SlackTextCommand cmd)
         {
             if (_cfg.Value.Admins.Contains(cmd.UserId))
             {
-                var list = await _list.ListPromosAsync(true);
-                var response = list.Count > 0 ? string.Join("\n", list.Where(a => !a.Activated).Select(a => $"`{a.Code}` ={a.Amount}")) : "Нет активных промокодов";
-                return (true, response);
+                var list = await _list.ListPromosAsync(false);
+                StringBuilder sb= new StringBuilder();
+                foreach (var code in list.OrderBy(a => a.ActivatedOn))
+                {
+                    sb.AppendLine($"{code.Code} activated={code.Activated}, on {code.ActivatedOn}, <@{code.ToUserId}>");
+
+                }
+                return (true, sb.ToString());
             }
 
             return (false, "oops");

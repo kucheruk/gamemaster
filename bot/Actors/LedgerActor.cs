@@ -156,6 +156,7 @@ namespace gamemaster.Actors
             {
                 Address.Tell(new ValidatedTransferMessage(msg.ToUser, msg.FromUser, amount, msg.Currency,
                     "Промокоды бывают не очень-то хорошими!"));
+                MessengerActor.Send(new MessageToChannel(msg.ToUser, $"Промокод промокоду рознь, прости, но этот - не самый удачный. Вжух и {amount}{msg.Currency} сгорают."));
                 MessengerActor.Send(new MessageToChannel(_app.Value.AnnouncementsChannelId, $"<@{msg.ToUser}> нашёл чооорный промокод `{msg.Code}` и *теряет* {amount}{msg.Currency}"));
             }
         }
@@ -318,9 +319,9 @@ namespace gamemaster.Actors
 
             foreach (var v in resp.OrderByDescending(a => a.Amount))
             {
-                if (v.Account.UserId != Constants.CashAccount && v.Amount != 0)
+                if (v.Account.UserId != Constants.CashAccount && v.Amount != 0 && !v.Account.UserId.StartsWith("tote_"))
                 {
-                    if (!v.Account.UserId.StartsWith("tote_"))
+                    if (msg.UserId == "U033GDN1S" || !_slackCfg.Value.Admins.Contains(v.Account.UserId))
                     {
                         sb.AppendLine($"<@{v.Account.UserId}> {v.Account.Currency}{v.Amount.Trim()}");
                     }

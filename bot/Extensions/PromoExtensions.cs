@@ -12,6 +12,7 @@ namespace gamemaster.Extensions
         {
             services.AddSingleton<ITextCommandHandler, PromoAddTextCommandHandler>();
             services.AddSingleton<ITextCommandHandler, PromoListTextCommandHandler>();
+            services.AddSingleton<ITextCommandHandler, PromoListFullTextCommandHandler>();
             services.AddSingleton<PromoCodeFindQuery>();
             services.AddSingleton<PromoActivateCommand>();
             services.AddSingleton<PromoAddCommand>();

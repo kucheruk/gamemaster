@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using gamemaster.Db;
 using gamemaster.Models;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace gamemaster.Queries.Tote
@@ -15,9 +16,13 @@ namespace gamemaster.Queries.Tote
             _ms = ms;
         }
 
-        public async Task<List<PromoCode>> ListPromosAsync()
+        public async Task<List<PromoCode>> ListPromosAsync(bool activatedOnly = true)
         {
-            var res = await _ms.Promo.Find(a => a.Activated == false)
+            var query = activatedOnly
+                ? _ms.Promo
+                    .Find(a => a.Activated == false)
+                : _ms.Promo.Find(new BsonDocument());
+            var res = await query
                 .ToListAsync();
             return res;
         }

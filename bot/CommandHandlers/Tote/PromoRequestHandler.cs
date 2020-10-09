@@ -36,6 +36,10 @@ namespace gamemaster.CommandHandlers.Tote
             MessageContext ctx, string responseUrl)
         {
             _logger.LogInformation("Request to activate promo from {user} {text}?");
+            if (text == null)
+            {
+                return (false, null);
+            }
             var code = await _find.FindPromoAsync(text.Trim());
             if (code == null)
             {
@@ -72,20 +76,29 @@ namespace gamemaster.CommandHandlers.Tote
         public async Task<(bool success, string reason)> HandlePromoAsync(string user, string text,
             MessageContext context, string responseUrl)
         {
-            if (_slackCfg.Value.Admins.Contains(user))
+            if (_slackCfg.Value.Admins == null)
             {
-                foreach (var command in _commands)
-                {
-                    if (command.Match(TextCommandFamily.Promo, text))
-                    {
-                        return await command.Process(new SlackTextCommand(user, context, responseUrl, text));
-                    }
-                }
-
-                return (true, "Какая-то очень странная и подозрительная команда!");
+                _logger.LogError("Null admins record");
+            }
+            if (!_slackCfg.Value.Admins.Contains(user))
+            {
+                return (false, "Только для админов, сорян!");
             }
 
-            return (false, "Только для админов, сорян!");
+            foreach (var command in _commands)
+            {
+                if (command == null)
+                {
+                    _logger.LogError("null command!");
+                }
+                if (command.Match(TextCommandFamily.Promo, text))
+                {
+                    return await command.Process(new SlackTextCommand(user, context, responseUrl, text));
+                }
+            }
+
+            return (true, "Какая-то очень странная и подозрительная команда!");
+
         }
     }
 }
