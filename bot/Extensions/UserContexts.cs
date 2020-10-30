@@ -21,7 +21,7 @@ namespace gamemaster.Extensions
             _slack = slack;
             _logger = logger;
             Receive<PlaceBetStartMessage>(StartBetDialog);
-            ReceiveAsync<PlaceBetSelectOptionMessage>(SelectNumber);
+            Receive<PlaceBetSelectOptionMessage>(SelectNumber);
         }
 
         public static IActorRef Address { get; private set; }
@@ -44,7 +44,7 @@ namespace gamemaster.Extensions
             child.Forward(msg);
         }
 
-        private async Task<bool> SelectNumber(PlaceBetSelectOptionMessage msg)
+        private bool SelectNumber(PlaceBetSelectOptionMessage msg)
         {
             var child = Context.Child($"bet_{msg.UserId}");
             if (child.IsNobody())

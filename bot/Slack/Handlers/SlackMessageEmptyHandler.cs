@@ -18,11 +18,11 @@ namespace gamemaster.Slack.Handlers
             _promo = promo;
         }
 
-        public override async Task<bool> Handle(JObject rq, HttpResponse response)
+        public override async Task<bool> Handle(SlackRequestContainer req)
         {
-            if (rq.ContainsKey("event"))
+            if (req.Json.ContainsKey("event"))
             {
-                var e = rq["event"];
+                var e = req.Json["event"];
                 if (e?["type"]?.ToString() != "message")
                 {
                     return false;

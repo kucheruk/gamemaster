@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json.Linq;
 
 namespace gamemaster
@@ -8,5 +9,6 @@ namespace gamemaster
         public string Raw { get; set; }
         public JObject Json { get; set; }
         public Dictionary<string, string> Form { get; set; }
+        public HttpResponse Response { get; set; }
     }
 }

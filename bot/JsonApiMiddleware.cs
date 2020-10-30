@@ -35,6 +35,7 @@ namespace gamemaster
         {
             try
             {
+                _req.Response = context.Response;
                 var request = context.Request;
                 var mediaType = GetMediaType(request);
                 if (mediaType == "application/json")
@@ -43,7 +44,7 @@ namespace gamemaster
                     _req.Json = json;
                     foreach (var jsonHandler in _jsonHandlers)
                     {
-                        if (await jsonHandler.Handle(json, context.Response))
+                        if (await jsonHandler.Handle(_req))
                         {
                             return;
                         }

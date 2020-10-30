@@ -38,11 +38,11 @@ namespace gamemaster.Extensions
             _slack = slack;
             _logger = logger;
             ReceiveAsync<PlaceBetStartMessage>(SetTote);
-            ReceiveAsync<PlaceBetSelectOptionMessage>(SelectNumber);
+            Receive<PlaceBetSelectOptionMessage>(SelectNumber);
             Receive<ReceiveTimeout>(Stop);
         }
 
-        private async Task SelectNumber(PlaceBetSelectOptionMessage msg)
+        private void SelectNumber(PlaceBetSelectOptionMessage msg)
         {
             var option = _toteValue.Options.FirstOrDefault(a => a.Id == msg.OptionId);
             if (option == null)

@@ -15,15 +15,15 @@ namespace gamemaster.Slack.Handlers
             _cfg = cfg;
         }
 
-        public override async Task<bool> Handle(JObject rq, HttpResponse response)
+        public override async Task<bool> Handle(SlackRequestContainer req)
         {
-            if (rq["type"]?.ToString() != "url_verification")
+            if (req.Json["type"]?.ToString() != "url_verification")
             {
                 return false;
             }
 
-            await ResponseChallenge(response, rq["challenge"]?.ToString(),
-                rq["token"]?.ToString());
+            await ResponseChallenge(req.Response, req.Json["challenge"]?.ToString(),
+                req.Json["token"]?.ToString());
             return true;
         }
         

@@ -6,18 +6,18 @@ namespace gamemaster.Slack.Handlers
 {
     public class SlackEventCallbackHandler : SlackJsonHandler
     {
-        public override async Task<bool> Handle(JObject rq, HttpResponse response)
+        public override async Task<bool> Handle(SlackRequestContainer req)
         {
-            if (rq["type"]?.ToString() == "event_callback")
+            if (req.Json["type"]?.ToString() == "event_callback")
             {
-                await HandleEventAsync(response, rq);
+                await HandleEventAsync(req.Response, req.Json);
                 return true;
             }
 
             return false;
         }
         
-        private async Task HandleEventAsync(HttpResponse resp, JObject rq)
+        private Task HandleEventAsync(HttpResponse resp, JObject rq)
         {
             var @event = rq["event"];
             if (@event?["type"]?.ToString() == "message")
@@ -26,13 +26,14 @@ namespace gamemaster.Slack.Handlers
                 var clientMsgId = @event["client_msg_id"]?.ToString();
                 if (!string.IsNullOrEmpty(botId) && string.IsNullOrEmpty(clientMsgId))
                 {
-                    return; // quick and dirty: ignore self (message loop)
+                    return Task.CompletedTask; // quick and dirty: ignore self (message loop)
                 }
 
                 var txt = @event["text"]?.ToString();
                 var author = @event["user"]?.ToString();
                 // TODO: response to simple messages?
             }
+            return Task.CompletedTask;
         }
 
 
